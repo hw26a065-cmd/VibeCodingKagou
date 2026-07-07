@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Beaker, 
   Sparkles, 
@@ -373,6 +373,23 @@ export default function App() {
   const [hand, setHand] = useState<ElementCard[]>([]);
   const [grave, setGrave] = useState<ElementCard[]>([]);
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
+
+  // 非同期の setTimeout コールバック内などで最新のカードデータを参照するための refs
+  const deckRef = useRef(deck);
+  const handRef = useRef(hand);
+  const graveRef = useRef(grave);
+
+  useEffect(() => {
+    deckRef.current = deck;
+  }, [deck]);
+
+  useEffect(() => {
+    handRef.current = hand;
+  }, [hand]);
+
+  useEffect(() => {
+    graveRef.current = grave;
+  }, [grave]);
   
   // バトル履歴
   const [turn, setTurn] = useState<number>(1);
@@ -798,6 +815,9 @@ export default function App() {
     let nextPlayer = { ...currentPlayerState };
     let nextEnemy = { ...enemy };
 
+    // 敵のシールドを0にリセット（プレイヤーと同様）
+    nextEnemy.shield = 0;
+
     // 敵が恐怖デバフにかかっているか
     const isEnemyFeared = enemy.debuffs.some(d => d.name === "恐怖" && d.count > 0);
 
@@ -876,7 +896,7 @@ export default function App() {
     }));
 
     // カードを6枚ドロー
-    drawCards(deck, [], grave, 6);
+    drawCards(deckRef.current, [], graveRef.current, 6);
   };
 
   // 戦闘勝利処理
