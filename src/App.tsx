@@ -24,6 +24,111 @@ import { motion, AnimatePresence } from "motion/react";
 // --- Types ---
 type ElementType = "H" | "O" | "C" | "N";
 
+interface DungeonNode {
+  id: string;
+  depth: number; // 0 to 4
+  type: "battle" | "event" | "shop";
+  enemyType?: "slime" | "bat" | "ghost";
+  isBoss?: boolean;
+  completed: boolean;
+}
+
+const generateDungeonMap = (): DungeonNode[] => {
+  const map: DungeonNode[] = [];
+  const enemyPool: ("slime" | "bat" | "ghost")[] = ["slime", "bat", "ghost"];
+  
+  // 深さ 0: 戦闘
+  map.push({
+    id: "node-0-0",
+    depth: 0,
+    type: "battle",
+    enemyType: enemyPool[Math.floor(Math.random() * enemyPool.length)],
+    completed: false
+  });
+  
+  // 深さ 1: 2ノード
+  for (let i = 0; i < 2; i++) {
+    const randType = ["battle", "event", "shop"][Math.floor(Math.random() * 3)] as "battle" | "event" | "shop";
+    map.push({
+      id: `node-1-${i}`,
+      depth: 1,
+      type: randType,
+      enemyType: randType === "battle" ? enemyPool[Math.floor(Math.random() * enemyPool.length)] : undefined,
+      completed: false
+    });
+  }
+  
+  // 深さ 2: 3ノード
+  for (let i = 0; i < 3; i++) {
+    const randType = ["battle", "event", "shop"][Math.floor(Math.random() * 3)] as "battle" | "event" | "shop";
+    map.push({
+      id: `node-2-${i}`,
+      depth: 2,
+      type: randType,
+      enemyType: randType === "battle" ? enemyPool[Math.floor(Math.random() * enemyPool.length)] : undefined,
+      completed: false
+    });
+  }
+  
+  // 深さ 3: 2ノード
+  for (let i = 0; i < 2; i++) {
+    const randType = ["battle", "event", "shop"][Math.floor(Math.random() * 3)] as "battle" | "event" | "shop";
+    map.push({
+      id: `node-3-${i}`,
+      depth: 3,
+      type: randType,
+      enemyType: randType === "battle" ? enemyPool[Math.floor(Math.random() * enemyPool.length)] : undefined,
+      completed: false
+    });
+  }
+  
+  // 深さ 4: ボス
+  map.push({
+    id: "node-4-0",
+    depth: 4,
+    type: "battle",
+    enemyType: enemyPool[Math.floor(Math.random() * enemyPool.length)],
+    isBoss: true,
+    completed: false
+  });
+  
+  return map;
+};
+
+const isNodeConnected = (fromId: string | null, toNode: DungeonNode): boolean => {
+  if (fromId === null) {
+    return toNode.depth === 0;
+  }
+  
+  const fromParts = fromId.split("-");
+  const fromDepth = parseInt(fromParts[1], 10);
+  const fromIdx = parseInt(fromParts[2], 10);
+  
+  if (toNode.depth !== fromDepth + 1) {
+    return false;
+  }
+  
+  const toIdx = parseInt(toNode.id.split("-")[2], 10);
+  
+  if (fromDepth === 0) {
+    return toIdx === 0 || toIdx === 1;
+  }
+  if (fromDepth === 1) {
+    if (fromIdx === 0) return toIdx === 0 || toIdx === 1;
+    if (fromIdx === 1) return toIdx === 1 || toIdx === 2;
+  }
+  if (fromDepth === 2) {
+    if (fromIdx === 0) return toIdx === 0;
+    if (fromIdx === 1) return toIdx === 0 || toIdx === 1;
+    if (fromIdx === 2) return toIdx === 1;
+  }
+  if (fromDepth === 3) {
+    return toIdx === 0;
+  }
+  
+  return false;
+};
+
 interface ElementCard {
   id: string;
   type: ElementType;
@@ -124,7 +229,7 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>H<sub>2</sub>O</span>),
     elements: { H: 2, O: 1 },
     description: "最も基本的で生命に不可欠な化合物。素早くシールドを張り、微細な攻撃を行う。",
-    testPlayEffect: "敵に3ダメージを与える。自身に3のシールドを付与し、カードを1枚引く。",
+    testPlayEffect: "・敵に3ダメージを与える\n・自身に3のシールドを付与する\n・カードを1枚引く",
     implemented: true
   },
   {
@@ -133,7 +238,7 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>NH<sub>3</sub></span>),
     elements: { N: 1, H: 3 },
     description: "刺激臭のある気体。他の化合物と組み合わせることで真価を発揮する毒素の触媒。",
-    testPlayEffect: "敵に4ダメージを与える。このターンにすでに水（H2O）を合成していたなら、対象に「毒デバフ（カウント+3）」を付与する。",
+    testPlayEffect: "・敵に4ダメージを与える\n・このターンにすでに水（H2O）を合成していたなら、対象に「毒デバフ（カウント+3）」を付与する",
     implemented: true
   },
   {
@@ -142,7 +247,7 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>CO</span>),
     elements: { C: 1, O: 1 },
     description: "無色無臭だが極めて有害な気体。相手に静かに浸透し、継続的なダメージを付与する。",
-    testPlayEffect: "敵に「毒デバフ」（カウント1）を付与し、カードを1枚引く。",
+    testPlayEffect: "・敵に「毒デバフ」（カウント1）を付与する\n・カードを1枚引く",
     implemented: true
   },
   {
@@ -151,7 +256,7 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>CO<sub>2</sub></span>),
     elements: { C: 1, O: 2 },
     description: "温暖化を招くガス。窒息性の衝撃と同時に、対象に強力な毒素を流し込む。",
-    testPlayEffect: "敵に4ダメージを与え、さらに「毒デバフ」（カウント1）を付与する。",
+    testPlayEffect: "・敵に4ダメージを与える\n・さらに「毒デバフ」（カウント1）を付与する",
     implemented: true
   },
   {
@@ -160,7 +265,7 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>NO</span>),
     elements: { N: 1, O: 1 },
     description: "血管拡張などの生理活性を持つ。危険から身を守るためのシールドを展開する。",
-    testPlayEffect: "自分に2のシールドを付与する。さらに墓地から好きなカードを1枚選び手札に加える。",
+    testPlayEffect: "・自分に2のシールドを付与する\n・さらに墓地から好きなカードを1枚選び手札に加える",
     implemented: true
   },
   {
@@ -169,7 +274,7 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>NO<sub>2</sub></span>),
     elements: { N: 1, O: 2 },
     description: "赤褐色の有毒な気体。非常に強力なシールドを貼るが、反動で自身も毒に侵される。",
-    testPlayEffect: "自分に5のシールドを付与する。さらに墓地から好きなカードを1枚選び手札に加える。",
+    testPlayEffect: "・自分に5のシールドを付与する\n・さらに墓地から好きなカードを1枚選び手札に加える",
     implemented: true
   },
   {
@@ -178,15 +283,15 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>H<sub>2</sub>O<sub>2</sub></span>),
     elements: { H: 2, O: 2 },
     description: "漂白剤や消毒剤として使われる。激しい酸化力で敵を蝕みつつ、自身を保護するシールドを生成する。",
-    testPlayEffect: "敵に2ダメージを与える。自身に3のシールドを付与し、墓地の水素（H）カードをすべて山札に戻す。",
+    testPlayEffect: "・敵に2ダメージを与える\n・自身に3 of シールドを付与し、墓地の水素（H）カードをすべて山札に戻す",
     implemented: true
   },
   // 未実装レシピのプレースホルダー（図鑑に51種の一部として表記）
-  { name: "炭酸", formula: "H2CO3", formulaDisplay: (<span>H<sub>2</sub>CO<sub>3</sub></span>), elements: { H: 2, C: 1, O: 3 }, description: "爽快な気泡。効果は今後実装予定。", implemented: false },
+  { name: "炭酸", formula: "H2CO3", formulaDisplay: (<span>H<sub>2</sub>CO<sub>3</sub></span>), elements: { H: 2, C: 1, O: 3 }, description: "爽快な気泡。二酸化炭素が水に溶けたもの。大量のダメージを与え、さらに手札の枚数に応じた強力な毒素を流し込む。", testPlayEffect: "・敵に5ダメージを与える\n・カードを3枚引く\n・引いた後の手札の枚数分「毒デバフ」を敵に付与する", implemented: true },
   { name: "シュウ酸", formula: "H2C2O4", formulaDisplay: (<span>H<sub>2</sub>C<sub>2</sub>O<sub>4</sub></span>), elements: { H: 2, C: 2, O: 4 }, description: "植物に含まれる酸。効果は今後実装予定。", implemented: false },
   { name: "酢酸", formula: "CH3COOH", formulaDisplay: (<span>CH<sub>3</sub>COOH</span>), elements: { C: 2, H: 4, O: 2 }, description: "酸味の主成分。手札上限拡張が必要なレシピ。", implemented: false },
-  { name: "硝酸", formula: "HNO3", formulaDisplay: (<span>HNO<sub>3</sub></span>), elements: { H: 1, N: 1, O: 3 }, description: "極めて強い酸性。効果は今後実装予定。", implemented: false },
-  { name: "亜硝酸", formula: "HNO2", formulaDisplay: (<span>HNO<sub>2</sub></span>), elements: { H: 1, N: 1, O: 2 }, description: "不安定な一価の酸。効果は今後実装予定。", implemented: false },
+  { name: "硝酸", formula: "HNO3", formulaDisplay: (<span>HNO<sub>3</sub></span>), elements: { H: 1, N: 1, O: 3 }, description: "極めて強い酸性を持つ。激しい反応性で敵にダメージを与え、墓地から好きなカードを2枚手札に戻す。", testPlayEffect: "・敵に4ダメージを与える\n・墓地から好きなカードを2枚選んで手札に加える", implemented: true },
+  { name: "亜硝酸", formula: "HNO2", formulaDisplay: (<span>HNO<sub>2</sub></span>), elements: { H: 1, N: 1, O: 2 }, description: "不安定な一価の酸。敵にダメージを与え、墓地から好きなカードを1枚手札に戻す。さらにこの合成に使用したカードは墓地に行く代わりに山札に戻してシャッフルされる。", testPlayEffect: "・敵に3ダメージを与える\n・墓地から好きなカードを1枚選んで手札に加える\n・この合成に使用したカードは墓地に行く代わりに山札に戻し、山札をシャッフルする", implemented: true },
   { name: "塩化ナトリウム", formula: "NaCl", formulaDisplay: (<span>NaCl</span>), elements: {}, description: "食塩。ClとNaの追加元素が必要なレシピ。効果は今後実装予定。", implemented: false },
   { name: "二酸化硫黄", formula: "SO2", formulaDisplay: (<span>SO<sub>2</sub></span>), elements: {}, description: "火山ガスに含まれる。Sの追加元素が必要なレシピ。", implemented: false },
   { name: "硫酸", formula: "H2SO4", formulaDisplay: (<span>H<sub>2</sub>SO<sub>4</sub></span>), elements: {}, description: "極めて危険な強酸。Sが必要なレシピ。", implemented: false },
@@ -357,6 +462,33 @@ const createEnemyTemplate = (type: "slime" | "bat" | "ghost"): Enemy => {
 };
 
 export default function App() {
+  // --- Permanent Dungeon State ---
+  const [gold, setGold] = useState<number>(100);
+  const [handLimit, setHandLimit] = useState<number>(6);
+  const [handLimitUpgradeCount, setHandLimitUpgradeCount] = useState<number>(0);
+  const [ownedArtifacts, setOwnedArtifacts] = useState<string[]>([]);
+  const [globalDeck, setGlobalDeck] = useState<ElementCard[]>([]);
+  const [dungeonMap, setDungeonMap] = useState<DungeonNode[]>([]);
+  const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
+  
+  // イベントやショップ関連の状態
+  const [activeEvent, setActiveEvent] = useState<{
+    type: "heal" | "gold" | "card";
+    value: number | string;
+    description: string;
+  } | null>(null);
+  
+  // ショップアイテムの状態
+  const [shopCards, setShopCards] = useState<{ type: ElementType; price: number; id: string }[]>([]);
+  const [shopArtifacts, setShopArtifacts] = useState<{ name: string; price: number; id: string }[]>([]);
+  const [shopHealPrice, setShopHealPrice] = useState<number>(40);
+  const [shopMaxHpPrice, setShopMaxHpPrice] = useState<number>(100);
+  
+  // デッキ消滅モーダル
+  const [showPurgeModal, setShowPurgeModal] = useState<boolean>(false);
+  const [purgeSelectedCardIds, setPurgeSelectedCardIds] = useState<string[]>([]);
+  const [purgeAftermathCallback, setPurgeAftermathCallback] = useState<(() => void) | null>(null);
+
   // --- Game State ---
   const [player, setPlayer] = useState<Player>({
     hp: 20,
@@ -366,7 +498,7 @@ export default function App() {
   });
 
   const [enemy, setEnemy] = useState<Enemy | null>(null);
-  const [gameState, setGameState] = useState<"title" | "battle" | "victory" | "gameover">("title");
+  const [gameState, setGameState] = useState<"title" | "dungeon_map" | "battle" | "shop" | "event" | "victory" | "gameover" | "game_clear">("title");
   
   // デッキ・手札関連
   const [deck, setDeck] = useState<ElementCard[]>([]);
@@ -374,6 +506,9 @@ export default function App() {
   const [grave, setGrave] = useState<ElementCard[]>([]);
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [showGraveSalvage, setShowGraveSalvage] = useState<boolean>(false);
+  const [salvageCount, setSalvageCount] = useState<number>(0);
+  const [tempEffectZone, setTempEffectZone] = useState<ElementCard[]>([]);
+  const [activeSynthesizedCompound, setActiveSynthesizedCompound] = useState<string | null>(null);
 
   // 非同期の setTimeout コールバック内などで最新のカードデータを参照するための refs
   const deckRef = useRef(deck);
@@ -442,25 +577,28 @@ export default function App() {
   };
 
   // バトル開始初期化
-  const startBattle = (enemyType: "slime" | "bat" | "ghost") => {
-    // プレイヤーリセット (HPは引き継ぐため、死亡時のみ20にリセット)
+  // バトル開始初期化
+  const startBattle = (enemyType: "slime" | "bat" | "ghost", isBoss: boolean = false) => {
+    // プレイヤーリセット (一時的な戦闘ステータスリセット)
     setPlayer(prev => ({
-      hp: prev.hp <= 0 ? 20 : prev.hp,
-      maxHp: 20,
+      hp: prev.hp <= 0 ? prev.maxHp : prev.hp,
+      maxHp: prev.maxHp,
       shield: 0,
       debuffs: []
     }));
 
     // 敵テンプレート作成、予告作成
     let rawEnemy = createEnemyTemplate(enemyType);
+    if (isBoss) {
+      rawEnemy.maxHp *= 2;
+      rawEnemy.hp = rawEnemy.maxHp;
+      rawEnemy.name = `${rawEnemy.name} (BOSS)`;
+    }
     rawEnemy = updateEnemyIntent(rawEnemy);
     setEnemy(rawEnemy);
 
-    // デッキ初期化＆シャッフル
-    const initialCards = INITIAL_DECK_TYPES.map(createCard);
-    
-    // フィッシャー–イェーツのシャッフル
-    const shuffled = [...initialCards];
+    // グローバルデッキからシャッフルして戦闘用山札を作成
+    const shuffled = [...globalDeck];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -479,8 +617,24 @@ export default function App() {
     setGameState("battle");
     setActiveTab("battle");
 
-    // 初期ドロー6枚 (遅延実行でドローアニメーションを感じられるように)
-    drawCards(shuffled, [], [], 6);
+    // 初期ドロー枚数の算出
+    let initialDrawCount = 5;
+    if (ownedArtifacts.includes("丸底フラスコ")) {
+      initialDrawCount += 1;
+    }
+    if (ownedArtifacts.includes("割れたフラスコ")) {
+      initialDrawCount -= 1;
+    }
+
+    // 水道水の効果
+    const extraCards: ElementCard[] = [];
+    if (ownedArtifacts.includes("水道水")) {
+      extraCards.push(createCard("H"));
+      addLog("【水道水の効果】1ターン目の開始時、手札にH（水素）を1枚生成しました。");
+    }
+
+    // ドロー実行
+    drawCards(shuffled, extraCards, [], initialDrawCount);
   };
 
   // 1枚ずつのドロー処理（再帰的/バッチ処理）
@@ -491,6 +645,12 @@ export default function App() {
     let drawnCount = 0;
 
     for (let i = 0; i < count; i++) {
+      // 手札上限チェック
+      if (h.length >= handLimit) {
+        addLog("【手札上限】手札が上限枚数に達したため、これ以上カードを引くことができません。");
+        break;
+      }
+
       if (d.length === 0) {
         if (g.length === 0) {
           // 山札も墓地も空ならそれ以上引けない
@@ -523,10 +683,36 @@ export default function App() {
     }
   };
 
+  const cleanupAfterSalvage = (currentTempZone: ElementCard[], overrideCompoundName?: string | null) => {
+    const activeCompound = overrideCompoundName !== undefined ? overrideCompoundName : activeSynthesizedCompound;
+    if (currentTempZone.length > 0) {
+      if (activeCompound === "亜硝酸") {
+        // 山札に戻してシャッフル
+        setDeck(prevDeck => {
+          let updatedDeck = [...prevDeck, ...currentTempZone];
+          // シャッフル
+          for (let i = updatedDeck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [updatedDeck[i], updatedDeck[j]] = [updatedDeck[j], updatedDeck[i]];
+          }
+          return updatedDeck;
+        });
+        addLog(`【亜硝酸の効果】合成に使用した素材カード ${currentTempZone.length} 枚をすべて山札に戻し、シャッフルしました。`);
+      } else {
+        // 墓地に送る
+        setGrave(prevGrave => [...prevGrave, ...currentTempZone]);
+      }
+    }
+    setTempEffectZone([]);
+    setActiveSynthesizedCompound(null);
+    setSalvageCount(0);
+    setShowGraveSalvage(false);
+  };
+
   const handleSalvageCard = (cardId: string) => {
     const targetCard = grave.find(c => c.id === cardId);
     if (!targetCard) {
-      setShowGraveSalvage(false);
+      cleanupAfterSalvage(tempEffectZone);
       return;
     }
     
@@ -536,7 +722,15 @@ export default function App() {
     setGrave(prevGrave => prevGrave.filter(c => c.id !== cardId));
     
     addLog(`墓地から「${targetCard.name}」を手札に戻しました。`);
-    setShowGraveSalvage(false);
+
+    const nextCount = salvageCount - 1;
+    setSalvageCount(nextCount);
+
+    if (nextCount <= 0 || (grave.length - 1) <= 0) {
+      cleanupAfterSalvage(tempEffectZone);
+    } else {
+      addLog(`墓地からもう 1 枚手札に加えるカードを選んでください（残り ${nextCount} 枚）。`);
+    }
   };
 
   // カード選択トグル
@@ -607,9 +801,17 @@ export default function App() {
     let drawCountAfter = 0;
     let returnHydrogenAfter = false;
     let triggerGraveSalvage = false;
+    let salvageCountNeeded = 0;
 
     // プレイヤーにかかっている「恐怖」デバフチェック
     const isPlayerFeared = player.debuffs.some(d => d.name === "恐怖" && d.count > 0);
+
+    const usedCards = hand.filter(c => selectedCardIds.includes(c.id));
+    const remainingHand = hand.filter(c => !selectedCardIds.includes(c.id));
+
+    let updatedHand = remainingHand;
+    let updatedDeck = [...deck];
+    let updatedGrave = [...grave];
 
     // 各化合物の具体的な効果処理
     switch (matchedCompound.name) {
@@ -722,13 +924,15 @@ export default function App() {
         // 自分に2シールド、墓地から1枚選んで手札に加える
         nextPlayer.shield += 2;
         triggerGraveSalvage = true;
+        salvageCountNeeded = 1;
         compoundLog = `「一酸化窒素」の効果：自分に 2 のシールドを付与した。`;
         break;
       }
       case "二酸化窒素": {
-        // 自分に5シールド、墓地から1枚選んで手札に加える（ペナルティの毒は削除）
+        // 自分に5シールド、墓地から1枚選んで手札に加える
         nextPlayer.shield += 5;
         triggerGraveSalvage = true;
+        salvageCountNeeded = 1;
         compoundLog = `「二酸化窒素」の効果：自分に 5 のシールドを付与した。`;
         break;
       }
@@ -755,71 +959,207 @@ export default function App() {
         compoundLog = `「過酸化水素」の効果：敵に ${dmg} ダメージを与え、自分に 3 のシールドを付与した。`;
         break;
       }
+      case "炭酸": {
+        // 1. 敵に5ダメージ
+        let dmg = 5;
+        if (isPlayerFeared) {
+          dmg = 2; // 5の半減は2
+          addLog("（プレイヤーが「恐怖」状態のため、与えるダメージが半減しました）");
+        }
+        if (enemy.id === "enemy-slime" && dmg > 0) {
+          dmg = Math.max(0, dmg - 1);
+          addLog("（スライムの特性〈液状生命体〉により、水素を含む化合物からのダメージが1軽減されました）");
+        }
+
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        let shieldDmg = Math.min(nextEnemy.shield, dmg);
+        
+        nextEnemy.shield -= shieldDmg;
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+
+        // 2. カードを3枚引く（即時、ローカル変数で処理）
+        let tempDeck = [...deck];
+        let tempHand = [...remainingHand];
+        let tempGrave = [...grave];
+        let drawnCount = 0;
+        const toDraw = 3;
+
+        for (let i = 0; i < toDraw; i++) {
+          if (tempDeck.length === 0) {
+            if (tempGrave.length > 0) {
+              tempDeck = [...tempGrave];
+              tempGrave = [];
+              for (let x = tempDeck.length - 1; x > 0; x--) {
+                const y = Math.floor(Math.random() * (x + 1));
+                [tempDeck[x], tempDeck[y]] = [tempDeck[y], tempDeck[x]];
+              }
+              addLog("【山札再構築】墓地のカードをシャッフルして山札を再構築しました。");
+            } else {
+              break;
+            }
+          }
+          const card = tempDeck.pop();
+          if (card) {
+            tempHand.push(card);
+            drawnCount++;
+          }
+        }
+
+        updatedHand = tempHand;
+        updatedDeck = tempDeck;
+        updatedGrave = tempGrave;
+
+        if (drawnCount > 0) {
+          addLog(`山札からカードを ${drawnCount} 枚引きました。`);
+        }
+
+        // 3. ドロー後の手札枚数をカウントして、その数だけ毒を付与
+        const poisonCount = updatedHand.length;
+        if (poisonCount > 0) {
+          const existingPoison = nextEnemy.debuffs.find(d => d.name === "毒");
+          if (existingPoison) {
+            existingPoison.count += poisonCount;
+          } else {
+            nextEnemy.debuffs.push({
+              name: "毒",
+              count: poisonCount,
+              description: "相手のターン終了時、このカウント数だけのダメージを受ける。さらに蓄積するとカウントが増える。"
+            });
+          }
+        }
+
+        compoundLog = `「炭酸」の効果：敵に ${dmg} ダメージを与え、カードを ${drawnCount} 枚引き、手札の枚数（${poisonCount}枚）と同じカウント数 ${poisonCount} の「毒デバフ」を敵に付与した。`;
+        break;
+      }
+      case "硝酸": {
+        // 敵に4ダメージ、墓地から2枚回収
+        let dmg = 4;
+        if (isPlayerFeared) {
+          dmg = 2; // 4の半減は2
+          addLog("（プレイヤーが「恐怖」状態のため、与えるダメージが半減しました）");
+        }
+        if (enemy.id === "enemy-slime" && dmg > 0) {
+          dmg = Math.max(0, dmg - 1);
+          addLog("（スライムの特性〈液状生命体〉により、水素を含む化合物からのダメージが1軽減されました）");
+        }
+
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        let shieldDmg = Math.min(nextEnemy.shield, dmg);
+        
+        nextEnemy.shield -= shieldDmg;
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+
+        triggerGraveSalvage = true;
+        salvageCountNeeded = 2;
+        compoundLog = `「硝酸」の効果：敵に ${dmg} ダメージを与えた。さらに墓地から好きなカードを2枚まで回収する。`;
+        break;
+      }
+      case "亜硝酸": {
+        // 敵に3ダメージ、墓地から1枚回収、素材は山札に戻す
+        let dmg = 3;
+        if (isPlayerFeared) {
+          dmg = 1; // 3の半減は1
+          addLog("（プレイヤーが「恐怖」状態のため、与えるダメージが半減しました）");
+        }
+        if (enemy.id === "enemy-slime" && dmg > 0) {
+          dmg = Math.max(0, dmg - 1);
+          addLog("（スライムの特性〈液状生命体〉により、水素を含む化合物からのダメージが1軽減されました）");
+        }
+
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        let shieldDmg = Math.min(nextEnemy.shield, dmg);
+        
+        nextEnemy.shield -= shieldDmg;
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+
+        triggerGraveSalvage = true;
+        salvageCountNeeded = 1;
+        compoundLog = `「亜硝酸」の効果：敵に ${dmg} ダメージを与えた。さらに墓地から好きなカードを1枚回収し、この合成に使用したカードは墓地に行く代わりに山札に戻してシャッフルする。`;
+        break;
+      }
       default:
         break;
     }
 
     addLog(compoundLog);
 
-    // 使用したカードを墓地へ
-    const usedCards = hand.filter(c => selectedCardIds.includes(c.id));
-    const remainingHand = hand.filter(c => !selectedCardIds.includes(c.id));
-    
-    let updatedGrave = [...grave, ...usedCards];
-    let updatedHand = remainingHand;
-    let updatedDeck = [...deck];
+    // 墓地回収が起動しない場合
+    if (!triggerGraveSalvage) {
+      let finalGrave = [...updatedGrave, ...usedCards];
+      let finalDeck = [...updatedDeck];
 
-    // 過酸化水素：墓地の水素（H）をすべて山札に戻す
-    if (returnHydrogenAfter) {
-      const hydrogenInGrave = updatedGrave.filter(c => c.type === "H");
-      if (hydrogenInGrave.length > 0) {
-        // 墓地から水素を削除
-        updatedGrave = updatedGrave.filter(c => c.type !== "H");
-        // 山札に追加
-        updatedDeck = [...updatedDeck, ...hydrogenInGrave];
-        
-        // シャッフル
-        for (let i = updatedDeck.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [updatedDeck[i], updatedDeck[j]] = [updatedDeck[j], updatedDeck[i]];
+      // 過酸化水素：墓地の水素（H）をすべて山札に戻す
+      if (returnHydrogenAfter) {
+        const hydrogenInGrave = finalGrave.filter(c => c.type === "H");
+        if (hydrogenInGrave.length > 0) {
+          // 墓地から水素を削除
+          finalGrave = finalGrave.filter(c => c.type !== "H");
+          // 山札に追加
+          finalDeck = [...finalDeck, ...hydrogenInGrave];
+          
+          // シャッフル
+          for (let i = finalDeck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [finalDeck[i], finalDeck[j]] = [finalDeck[j], finalDeck[i]];
+          }
+          addLog(`【山札還流】墓地の水素（H）カード ${hydrogenInGrave.length} 枚をすべて山札に戻し、シャッフルしました。`);
+        } else {
+          addLog("（墓地に水素カードがなかったため、山札に戻す処理は行われませんでした）");
         }
-        addLog(`【山札還流】墓地の水素（H）カード ${hydrogenInGrave.length} 枚をすべて山札に戻し、シャッフルしました。`);
-      } else {
-        addLog("（墓地に水素カードがなかったため、山札に戻す処理は行われませんでした）");
       }
-    }
 
-    // まずカードの移動状態を反映
-    setGrave(updatedGrave);
-    setHand(updatedHand);
-    setSelectedCardIds([]);
-    setDeck(updatedDeck);
+      setGrave(finalGrave);
+      setHand(updatedHand);
+      setSelectedCardIds([]);
+      setDeck(finalDeck);
 
-    // 敵の死亡チェック
-    if (nextEnemy.hp <= 0) {
-      setEnemy(nextEnemy);
-      setPlayer(nextPlayer);
-      handleBattleVictory();
-      return; // 勝利したらモーダル起動やドローは行わない
-    } else {
-      setEnemy(nextEnemy);
-      setPlayer(nextPlayer);
-    }
-
-    // ドロー処理がある場合
-    if (drawCountAfter > 0) {
-      // タイムアウトなしで同期的に最新の状態でドロー
-      drawCards(updatedDeck, updatedHand, updatedGrave, drawCountAfter);
-    }
-
-    // 墓地回収がある場合
-    if (triggerGraveSalvage) {
-      // 回収対象が墓地にあるか
-      if (updatedGrave.length > 0) {
-        setShowGraveSalvage(true);
-        addLog("墓地から手札に加えるカードを1枚選んでください。");
+      // 敵の死亡チェック
+      if (nextEnemy.hp <= 0) {
+        setEnemy(nextEnemy);
+        setPlayer(nextPlayer);
+        handleBattleVictory();
+        return;
       } else {
+        setEnemy(nextEnemy);
+        setPlayer(nextPlayer);
+      }
+
+      // ドロー処理がある場合
+      if (drawCountAfter > 0) {
+        drawCards(finalDeck, updatedHand, finalGrave, drawCountAfter);
+      }
+    } else {
+      // 墓地回収（サルベージ）が起動する場合
+      // 素材カード（usedCards）は墓地に混ぜずに、一時領域に保管する
+      setGrave(updatedGrave);
+      setHand(updatedHand);
+      setSelectedCardIds([]);
+      setDeck(updatedDeck);
+
+      // 敵の死亡チェック
+      if (nextEnemy.hp <= 0) {
+        setEnemy(nextEnemy);
+        setPlayer(nextPlayer);
+        // すぐにクリーンアップして素材を処理
+        cleanupAfterSalvage(usedCards, matchedCompound.name);
+        handleBattleVictory();
+        return;
+      } else {
+        setEnemy(nextEnemy);
+        setPlayer(nextPlayer);
+      }
+
+      // 墓地回収画面の起動
+      if (updatedGrave.length === 0) {
         addLog("（墓地が空のため、カードを回収できませんでした）");
+        cleanupAfterSalvage(usedCards, matchedCompound.name);
+      } else {
+        const actualSalvageCount = Math.min(salvageCountNeeded, updatedGrave.length);
+        setShowGraveSalvage(true);
+        setTempEffectZone(usedCards);
+        setActiveSynthesizedCompound(matchedCompound.name);
+        setSalvageCount(actualSalvageCount);
+        addLog(`墓地から手札に加えるカードを ${actualSalvageCount} 枚選んでください。`);
       }
     }
   };
@@ -953,14 +1293,249 @@ export default function App() {
       shield: 0
     }));
 
-    // カードを6枚ドロー
-    drawCards(deckRef.current, [], graveRef.current, 6);
+    // ターン開始時の引く枚数の算出（基本5枚、丸底フラスコで+1、割れたフラスコで-1）
+    let drawCount = 5;
+    if (ownedArtifacts.includes("丸底フラスコ")) {
+      drawCount += 1;
+    }
+    if (ownedArtifacts.includes("割れたフラスコ")) {
+      drawCount -= 1;
+    }
+
+    // カードをドロー
+    drawCards(deckRef.current, [], graveRef.current, drawCount);
   };
 
   // 戦闘勝利処理
   const handleBattleVictory = () => {
+    // 勝利報酬ゴールド獲得
+    const isBoss = enemy?.name.includes("BOSS");
+    const earnedGold = isBoss
+      ? Math.floor(Math.random() * 31) + 120 // 120〜150ゴールド
+      : Math.floor(Math.random() * 21) + 40;  // 40〜60ゴールド
+    
+    setGold(prev => prev + earnedGold);
+    addLog(`【戦闘勝利】敵を撃破しました！報酬として ${earnedGold} ゴールドを獲得しました！`);
+    
+    // ダンジョンマップの現在位置を完了状態にする
+    if (currentNodeId) {
+      setDungeonMap(prev => prev.map(node => {
+        if (node.id === currentNodeId) {
+          return { ...node, completed: true };
+        }
+        return node;
+      }));
+    }
+    
     setGameState("victory");
-    addLog("戦闘に勝利しました！おめでとうございます！");
+  };
+
+  // ダンジョン開始初期化
+  const startDungeon = () => {
+    const initialDeck = INITIAL_DECK_TYPES.map(createCard);
+    setGlobalDeck(initialDeck);
+    setGold(100);
+    setHandLimit(6);
+    setHandLimitUpgradeCount(0);
+    setOwnedArtifacts([]);
+    
+    // ダンジョンマップ生成
+    const newMap = generateDungeonMap();
+    setDungeonMap(newMap);
+    setCurrentNodeId(null);
+    
+    setPlayer({
+      hp: 20,
+      maxHp: 20,
+      shield: 0,
+      debuffs: []
+    });
+    
+    setGameState("dungeon_map");
+  };
+
+  // ショップに入る
+  const enterShopNode = (nodeId: string) => {
+    setCurrentNodeId(nodeId);
+    
+    // 金額補正（-20 〜 +20）
+    const generatePrice = (base: number) => {
+      const offset = Math.floor(Math.random() * 41) - 20; // -20 to +20
+      return Math.max(10, base + offset); // 最小10
+    };
+    
+    // カード商品を3つ生成（H, O, C, N からランダムに3つ選出）
+    const types: ElementType[] = ["H", "O", "C", "N"];
+    const cards = Array.from({ length: 3 }, () => {
+      const t = types[Math.floor(Math.random() * types.length)];
+      return {
+        type: t,
+        price: generatePrice(50),
+        id: `shop-card-${Math.random().toString(36).substr(2, 9)}`
+      };
+    });
+    
+    // まだ持っていない実験器具を並べる
+    const allArtifacts = ["丸底フラスコ", "割れたフラスコ", "水道水"];
+    const unowned = allArtifacts.filter(art => !ownedArtifacts.includes(art));
+    const arts = unowned.map(name => ({
+      name,
+      price: generatePrice(100),
+      id: `shop-art-${Math.random().toString(36).substr(2, 9)}`
+    }));
+    
+    setShopCards(cards);
+    setShopArtifacts(arts);
+    setShopHealPrice(generatePrice(40));
+    setShopMaxHpPrice(generatePrice(100));
+    
+    setGameState("shop");
+  };
+
+  const handleBuyCard = (type: ElementType, price: number, shopCardId: string) => {
+    if (gold < price) return;
+    setGold(p => p - price);
+    setGlobalDeck(prev => [...prev, createCard(type)]);
+    setShopCards(prev => prev.filter(c => c.id !== shopCardId));
+    addLog(`【ショップ】「${ELEMENT_DEFS[type].name}（${type}）」カードを ${price} Gで購入しました。`);
+  };
+
+  const handleBuyArtifact = (name: string, price: number, shopArtId: string) => {
+    if (gold < price) return;
+    
+    const finalizePurchase = () => {
+      setGold(p => p - price);
+      setShopArtifacts(prev => prev.filter(a => a.id !== shopArtId));
+      addLog(`【ショップ】実験器具「${name}」を ${price} Gで購入しました。`);
+    };
+
+    if (name === "割れたフラスコ") {
+      // 消滅処理が先。デッキが十分（15枚以上）あるかチェック
+      if (globalDeck.length < 15) {
+        addLog("【ショップ】割れたフラスコを購入するには、デッキに15枚以上のカードが必要です（消滅後に10枚以上残すため）。");
+        return;
+      }
+      triggerBrokenFlaskPurge(() => {
+        finalizePurchase();
+      });
+    } else {
+      finalizePurchase();
+      setOwnedArtifacts(prev => [...prev, name]);
+    }
+  };
+
+  const handleBuyHeal = (price: number) => {
+    if (gold < price) return;
+    if (player.hp >= player.maxHp) {
+      addLog("【ショップ】プレイヤーの体力はすでに最大です。");
+      return;
+    }
+    setGold(p => p - price);
+    setPlayer(prev => ({
+      ...prev,
+      hp: Math.min(prev.maxHp, prev.hp + 10)
+    }));
+    addLog(`【ショップ】体力を10回復しました（消費: ${price} G）。`);
+  };
+
+  const handleBuyMaxHp = (price: number) => {
+    if (gold < price) return;
+    setGold(p => p - price);
+    setPlayer(prev => ({
+      ...prev,
+      maxHp: prev.maxHp + 5,
+      hp: prev.hp + 5
+    }));
+    addLog(`【ショップ】最大体力を+5増加させました（消費: ${price} G）。`);
+  };
+
+  const handleBuyHandLimit = () => {
+    const prices = [100, 200, 400, 800];
+    if (handLimitUpgradeCount >= 4) return;
+    const price = prices[handLimitUpgradeCount];
+    if (gold < price) return;
+    
+    setGold(p => p - price);
+    setHandLimitUpgradeCount(prev => prev + 1);
+    setHandLimit(prev => prev + 1);
+    addLog(`【ショップ】手札上限を ${handLimit + 1} に増加させました（消費: ${price} G）。`);
+  };
+
+  // イベントに入る
+  const enterEventNode = (nodeId: string) => {
+    setCurrentNodeId(nodeId);
+    
+    // ランダムに1つ発動
+    const eventType = ["heal", "gold", "card"][Math.floor(Math.random() * 3)] as "heal" | "gold" | "card";
+    
+    if (eventType === "heal") {
+      // 体力10回復
+      const healAmount = 10;
+      setPlayer(prev => ({
+        ...prev,
+        hp: Math.min(prev.maxHp, prev.hp + healAmount)
+      }));
+      setActiveEvent({
+        type: "heal",
+        value: healAmount,
+        description: `古い遺跡から温かい癒やしの水が湧き出ています。プレイヤーの体力が ${healAmount} 回復しました！`
+      });
+    } else if (eventType === "gold") {
+      // ゴールド50〜80獲得
+      const goldAmount = Math.floor(Math.random() * 31) + 50; // 50 to 80
+      setGold(prev => prev + goldAmount);
+      setActiveEvent({
+        type: "gold",
+        value: goldAmount,
+        description: `放置された古い宝箱を見つけました！中から ${goldAmount} ゴールドを手に入れました。`
+      });
+    } else {
+      // 元素カード1枚獲得
+      const types: ElementType[] = ["H", "O", "C", "N"];
+      const t = types[Math.floor(Math.random() * types.length)];
+      const newCard = createCard(t);
+      setGlobalDeck(prev => [...prev, newCard]);
+      setActiveEvent({
+        type: "card",
+        value: t,
+        description: `漂うエーテル結晶から不思議な引力により、「${ELEMENT_DEFS[t].name}（${t}）」カードがデッキに加わりました！`
+      });
+    }
+    
+    // ノードを完了にする
+    setDungeonMap(prev => prev.map(node => {
+      if (node.id === nodeId) {
+        return { ...node, completed: true };
+      }
+      return node;
+    }));
+    
+    setGameState("event");
+  };
+
+  // 割れたフラスコ用の消滅画面の起動
+  const triggerBrokenFlaskPurge = (aftermath: () => void) => {
+    setPurgeSelectedCardIds([]);
+    setPurgeAftermathCallback(() => aftermath);
+    setShowPurgeModal(true);
+  };
+
+  // 消滅処理の完了
+  const handlePurgeComplete = () => {
+    if (purgeSelectedCardIds.length !== 5) return;
+    
+    // globalDeck から選択されたカードを削除
+    setGlobalDeck(prev => prev.filter(c => !purgeSelectedCardIds.includes(c.id)));
+    
+    // 正式に割れたフラスコを追加
+    setOwnedArtifacts(prev => [...prev, "割れたフラスコ"]);
+    
+    setShowPurgeModal(false);
+    setPurgeSelectedCardIds([]);
+    
+    if (purgeAftermathCallback) {
+      purgeAftermathCallback();
+    }
   };
 
   // タイトルへ戻る
@@ -984,11 +1559,40 @@ export default function App() {
                 バトルテストプレイ版
               </span>
             </h1>
-            <p className="text-xs text-slate-400 font-mono hidden md:block">v1.0.0 (Slime, Bat, Ghost Combat Sandbox)</p>
+            <p className="text-xs text-slate-400 font-mono hidden md:block">v1.1.0 (Dungeon, Shop, & Artifacts Sandbox)</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4 flex-wrap">
+          {/* プレイヤーのステータス表示（タイトル画面以外） */}
+          {gameState !== "title" && (
+            <div className="flex items-center gap-4 text-xs font-mono bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg">
+              <span className="flex items-center gap-1.5 text-rose-400 font-bold">
+                <Heart className="w-4 h-4 fill-rose-500/10" />
+                HP: {player.hp}/{player.maxHp}
+              </span>
+              <span className="text-slate-500">|</span>
+              <span className="flex items-center gap-1.5 text-amber-400 font-bold">
+                🪙 {gold} G
+              </span>
+              <span className="text-slate-500">|</span>
+              <span className="text-cyan-400 font-bold">
+                🎴 手札上限: {handLimit}
+              </span>
+              {ownedArtifacts.length > 0 && (
+                <>
+                  <span className="text-slate-500">|</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-slate-400">実験器具:</span>
+                    <span className="bg-slate-950 px-2 py-0.5 rounded text-[10px] text-cyan-300 border border-cyan-900 flex gap-1">
+                      {ownedArtifacts.join(", ")}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           <button 
             id="btn-recipes-tab"
             onClick={() => setActiveTab(prev => prev === "recipes" ? "battle" : "recipes")}
@@ -1025,24 +1629,41 @@ export default function App() {
               </div>
 
               <h2 className="text-3xl md:text-4xl font-display font-bold mb-4 tracking-tight text-white">
-                テストプレイ用：カードバトルサンドボックス
+                元素ローグライク：カードバトル ＆ ダンジョン試作
               </h2>
               
               <p className="text-slate-400 text-sm md:text-base mb-8 max-w-md leading-relaxed">
                 化学をテーマにした独自のローグライクカードバトルの試作版です。
-                初期元素カード（H, O, C, N）を過不足なく選択して「合成確定」し、強力な化学反応を巻き起こして敵を撃破してください。
+                初期元素カードを過不足なく選択して「合成確定」し、強力な化学反応を巻き起こして敵を撃破してください。
               </p>
+
+              {/* DUNGEON START BUTTON */}
+              <div className="w-full mb-8">
+                <button
+                  id="btn-start-dungeon-run"
+                  onClick={startDungeon}
+                  className="w-full py-4 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-slate-950 font-bold text-base md:text-lg rounded-2xl shadow-[0_0_30px_rgba(6,182,212,0.3)] hover:shadow-[0_0_40px_rgba(6,182,212,0.5)] transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-3 cursor-pointer"
+                >
+                  <Play className="w-6 h-6 fill-slate-950" />
+                  <span>仮のダンジョンをテストプレイ（全5マス、ショップ、イベント有）</span>
+                </button>
+              </div>
 
               <div className="w-full bg-slate-900/50 border border-slate-800 rounded-xl p-5 mb-8 text-left">
                 <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-1.5 font-display">
                   <Swords className="w-4 h-4 text-cyan-400" />
-                  戦闘テスト対象の敵を選択
+                  個別戦闘サンドボックス（ダンジョンを通らずに即座に戦闘テスト）
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <button
                     id="btn-select-slime"
-                    onClick={() => startBattle("slime")}
+                    onClick={() => {
+                      const initialDeck = INITIAL_DECK_TYPES.map(createCard);
+                      setGlobalDeck(initialDeck);
+                      setGold(100);
+                      startBattle("slime");
+                    }}
                     className="p-4 bg-emerald-950/20 border border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-950/40 rounded-xl text-left transition-all duration-200 group"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -1060,7 +1681,12 @@ export default function App() {
 
                   <button
                     id="btn-select-bat"
-                    onClick={() => startBattle("bat")}
+                    onClick={() => {
+                      const initialDeck = INITIAL_DECK_TYPES.map(createCard);
+                      setGlobalDeck(initialDeck);
+                      setGold(100);
+                      startBattle("bat");
+                    }}
                     className="p-4 bg-red-950/20 border border-red-500/30 hover:border-red-500 hover:bg-red-950/40 rounded-xl text-left transition-all duration-200 group"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -1078,7 +1704,12 @@ export default function App() {
 
                   <button
                     id="btn-select-ghost"
-                    onClick={() => startBattle("ghost")}
+                    onClick={() => {
+                      const initialDeck = INITIAL_DECK_TYPES.map(createCard);
+                      setGlobalDeck(initialDeck);
+                      setGold(100);
+                      startBattle("ghost");
+                    }}
                     className="p-4 bg-fuchsia-950/20 border border-fuchsia-500/30 hover:border-fuchsia-500 hover:bg-fuchsia-950/40 rounded-xl text-left transition-all duration-200 group"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -1630,8 +2261,8 @@ export default function App() {
                     </div>
 
                     {recipe.implemented && recipe.testPlayEffect && (
-                      <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-green-400">
-                        <span className="text-[10px] text-slate-500 font-bold block mb-0.5">【テストプレイ時効果】</span>
+                      <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-green-400 whitespace-pre-line">
+                        <span className="text-[10px] text-slate-500 font-bold block mb-0.5 font-sans">【テストプレイ時効果】</span>
                         {recipe.testPlayEffect}
                       </div>
                     )}
@@ -1672,13 +2303,40 @@ export default function App() {
               </div>
 
               <div className="flex flex-col gap-3 w-full">
-                <button
-                  id="btn-victory-continue"
-                  onClick={returnToTitle}
-                  className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition duration-200"
-                >
-                  他の敵を戦闘テストする
-                </button>
+                {currentNodeId ? (
+                  // ダンジョン中の場合
+                  dungeonMap.find(n => n.id === currentNodeId)?.depth === 5 ? (
+                    // 5マス目（ボス）の場合
+                    <button
+                      id="btn-victory-to-clear"
+                      onClick={() => setGameState("game_clear")}
+                      className="w-full py-3 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition duration-200 cursor-pointer"
+                    >
+                      👑 実験室から脱出し、ゲームクリアへ！
+                    </button>
+                  ) : (
+                    // 通常のマスの場合
+                    <button
+                      id="btn-victory-to-map"
+                      onClick={() => {
+                        setGameState("dungeon_map");
+                        setEnemy(null);
+                      }}
+                      className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition duration-200 cursor-pointer"
+                    >
+                      ダンジョンマップに戻る
+                    </button>
+                  )
+                ) : (
+                  // 個別戦闘テストの場合
+                  <button
+                    id="btn-victory-continue"
+                    onClick={returnToTitle}
+                    className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition duration-200 cursor-pointer"
+                  >
+                    他の敵を戦闘テストする
+                  </button>
+                )}
               </div>
             </motion.div>
           )}
@@ -1702,12 +2360,435 @@ export default function App() {
               </p>
 
               <div className="flex flex-col gap-3 w-full">
+                {currentNodeId ? (
+                  <button
+                    id="btn-gameover-to-title"
+                    onClick={() => {
+                      setGameState("title");
+                      setEnemy(null);
+                    }}
+                    className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-sm rounded-xl transition duration-200 cursor-pointer"
+                  >
+                    タイトルに戻る (ダンジョン挑戦終了)
+                  </button>
+                ) : (
+                  <button
+                    id="btn-gameover-retry"
+                    onClick={returnToTitle}
+                    className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-sm rounded-xl transition duration-200 cursor-pointer"
+                  >
+                    敵の選択に戻り、再実験する
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* DUNGEON MAP SCREEN */}
+          {gameState === "dungeon_map" && (
+            <motion.div 
+              key="dungeon-map-screen"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col gap-6 max-w-3xl mx-auto w-full py-6"
+            >
+              <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl flex flex-col gap-4 shadow-xl">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2 font-display">
+                      <Sparkles className="text-cyan-400 w-5 h-5" />
+                      元素研究室の廃墟 (Dungeon Stage 1)
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                      化学実験器具や素材が眠る遺跡です。奥行き5層の試作ルートを進み、最深部のボスを目指してください。
+                    </p>
+                  </div>
+                  <button 
+                    onClick={returnToTitle}
+                    className="text-xs bg-slate-800 hover:bg-slate-750 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 cursor-pointer"
+                  >
+                    諦めてリタイア
+                  </button>
+                </div>
+
+                {/* 2Dルートマップ風 UI */}
+                <div className="py-8 px-4 flex flex-col gap-6 bg-slate-950/50 rounded-xl border border-slate-900 relative">
+                  {/* 深さ 1 から 5 までをループ */}
+                  {[1, 2, 3, 4, 5].map(depth => {
+                    const nodesInDepth = dungeonMap.filter(n => n.depth === depth);
+                    return (
+                      <div key={depth} className="flex flex-col gap-3">
+                        <div className="flex justify-between items-center text-[10px] font-mono text-slate-600 border-b border-slate-900 pb-1.5">
+                          <span>DEPTH 0{depth}</span>
+                          {depth === 5 && <span className="text-amber-500 font-bold flex items-center gap-1">👑 FINAL BOSS</span>}
+                        </div>
+                        <div className="flex justify-around items-center py-2 gap-4">
+                          {nodesInDepth.map(node => {
+                            // 選択可能かの判定
+                            let canSelect = false;
+                            if (depth === 1 && !currentNodeId) {
+                              canSelect = true; // 最初のマス
+                            } else if (currentNodeId) {
+                              const currentNode = dungeonMap.find(n => n.id === currentNodeId);
+                              if (currentNode && isNodeConnected(currentNode, node) && currentNode.completed) {
+                                canSelect = true; // 現在のマスが完了していて、道がつながっている
+                              }
+                            }
+
+                            const isCurrent = node.id === currentNodeId;
+                            
+                            // アイコンと背景クラスの設定
+                            let icon = "⚔️";
+                            let typeText = "戦闘";
+                            let styleClass = "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700";
+
+                            if (node.type === "shop") {
+                              icon = "🪙";
+                              typeText = "ショップ";
+                              styleClass = "bg-amber-950/10 border-amber-500/20 text-amber-400 hover:border-amber-400/50";
+                            } else if (node.type === "event") {
+                              icon = "💎";
+                              typeText = "イベント";
+                              styleClass = "bg-purple-950/10 border-purple-500/20 text-purple-400 hover:border-purple-400/50";
+                            } else if (depth === 5) {
+                              icon = "👹";
+                              typeText = "BOSS";
+                              styleClass = "bg-rose-950/20 border-rose-500/30 text-rose-400 hover:border-rose-500";
+                            }
+
+                            if (node.completed) {
+                              styleClass = "bg-slate-950 border-slate-850 text-slate-600 line-through opacity-50";
+                            } else if (isCurrent) {
+                              styleClass = "bg-cyan-950/30 border-cyan-400 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]";
+                            } else if (canSelect) {
+                              styleClass = "bg-slate-900 border-cyan-500/40 text-cyan-400 hover:border-cyan-400 cursor-pointer animate-pulse";
+                            }
+
+                            return (
+                              <button
+                                key={node.id}
+                                disabled={!canSelect}
+                                onClick={() => {
+                                  if (node.type === "battle") {
+                                    // 敵をランダムに選択（スライム, バット, ゴースト）
+                                    const enemies: ("slime" | "bat" | "ghost")[] = ["slime", "bat", "ghost"];
+                                    const randEnemy = enemies[Math.floor(Math.random() * enemies.length)];
+                                    setCurrentNodeId(node.id);
+                                    startBattle(randEnemy, depth === 5); // 5層目ならボス
+                                  } else if (node.type === "shop") {
+                                    enterShopNode(node.id);
+                                  } else {
+                                    enterEventNode(node.id);
+                                  }
+                                }}
+                                className={`flex-1 p-3 border rounded-xl flex flex-col items-center gap-1 text-center transition duration-200 ${styleClass}`}
+                              >
+                                <span className="text-lg">{icon}</span>
+                                <span className="text-xs font-bold font-display">{typeText}</span>
+                                {node.completed && <span className="text-[9px] text-green-500 font-bold">済</span>}
+                                {isCurrent && !node.completed && <span className="text-[9px] text-cyan-400 font-bold">現在地</span>}
+                                {canSelect && !node.completed && <span className="text-[9px] text-cyan-300 font-bold">進行可能</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="bg-slate-950/30 p-4 rounded-xl border border-slate-900 text-xs text-slate-400 leading-relaxed font-sans">
+                  <strong>💡 進行方法:</strong> 「進行可能」と点滅している一番下のノード（深さ1）をクリックして開始します。クリアすると接続されている上の層のマスへ進むことができます。最上層の5マス目は最大HPが2倍になった強力なBOSSが立ちはだかります！
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* SHOP SCREEN */}
+          {gameState === "shop" && (
+            <motion.div 
+              key="shop-screen"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col gap-6 max-w-4xl mx-auto w-full py-6"
+            >
+              <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl flex flex-col gap-6 shadow-xl">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-amber-400 flex items-center gap-2 font-display">
+                      🪙 闇の化学品闇市（Shop）
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                      集めたゴールドを支払って、元素の購入、実験器具の調達、体力の回復、さらには手札の上限突破を行うことができます。
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      // ショップマスを完了にしてマップに戻る
+                      if (currentNodeId) {
+                        setDungeonMap(prev => prev.map(node => {
+                          if (node.id === currentNodeId) {
+                            return { ...node, completed: true };
+                          }
+                          return node;
+                        }));
+                      }
+                      setGameState("dungeon_map");
+                    }}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 text-xs font-bold rounded-lg cursor-pointer"
+                  >
+                    買い物終了（ダンジョンマップへ）
+                  </button>
+                </div>
+
+                {/* SHOP ITEMS GRID */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left: Cards and Artifacts */}
+                  <div className="flex flex-col gap-4">
+                    <h4 className="text-xs font-mono font-bold text-slate-400 tracking-wider">元素カード（デッキに恒久追加）</h4>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {shopCards.map(sc => (
+                        <div key={sc.id} className="p-3 bg-slate-950/60 border border-slate-850 rounded-xl flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-bold text-cyan-400 text-lg font-mono">
+                              {sc.type}
+                            </span>
+                            <div>
+                              <p className="text-xs font-bold text-white">{ELEMENT_DEFS[sc.type].name}</p>
+                              <p className="text-[10px] text-slate-500">初期デッキの構築を補強するための元素</p>
+                            </div>
+                          </div>
+                          <button
+                            disabled={gold < sc.price}
+                            onClick={() => handleBuyCard(sc.type, sc.price, sc.id)}
+                            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition ${
+                              gold >= sc.price
+                                ? "bg-amber-500 hover:bg-amber-400 text-slate-950"
+                                : "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
+                            }`}
+                          >
+                            🪙 {sc.price} G
+                          </button>
+                        </div>
+                      ))}
+                      {shopCards.length === 0 && (
+                        <p className="text-xs text-slate-600 italic py-4 text-center">売り切れました。</p>
+                      )}
+                    </div>
+
+                    <h4 className="text-xs font-mono font-bold text-slate-400 tracking-wider mt-2">実験器具（特殊アイテム）</h4>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {shopArtifacts.map(sa => {
+                        let desc = "";
+                        if (sa.name === "丸底フラスコ") desc = "ターン開始時に引く上限が+1枚増加する。";
+                        else if (sa.name === "割れたフラスコ") desc = "【即時】デッキからカードを5枚選んで消滅させる。ターン開始ドローが-1。";
+                        else if (sa.name === "水道水") desc = "1ターン目の開始時、H（水素）を1枚手札に生成する。";
+
+                        return (
+                          <div key={sa.id} className="p-3 bg-slate-950/60 border border-slate-850 rounded-xl flex items-center justify-between">
+                            <div className="flex-1 pr-4">
+                              <p className="text-xs font-bold text-cyan-300 flex items-center gap-1">🧪 {sa.name}</p>
+                              <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">{desc}</p>
+                            </div>
+                            <button
+                              disabled={gold < sa.price}
+                              onClick={() => handleBuyArtifact(sa.name, sa.price, sa.id)}
+                              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition ${
+                                gold >= sa.price
+                                  ? "bg-amber-500 hover:bg-amber-400 text-slate-950"
+                                  : "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
+                              }`}
+                            >
+                              🪙 {sa.price} G
+                            </button>
+                          </div>
+                        );
+                      })}
+                      {shopArtifacts.length === 0 && (
+                        <p className="text-xs text-slate-600 italic py-4 text-center">売り切れ、またはすべて所持しています。</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right: Player Upgrades (Heal, Max HP, Hand Limit) */}
+                  <div className="flex flex-col gap-4 bg-slate-950/40 p-5 rounded-2xl border border-slate-850">
+                    <h4 className="text-xs font-mono font-bold text-slate-400 tracking-wider">プレイヤー・インフラ設備強化</h4>
+                    
+                    {/* Heal */}
+                    <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-rose-400">体力の応急修復（回復）</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">体力を 10 ポイント回復します。</p>
+                      </div>
+                      <button
+                        disabled={gold < shopHealPrice || player.hp >= player.maxHp}
+                        onClick={() => handleBuyHeal(shopHealPrice)}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition ${
+                          gold >= shopHealPrice && player.hp < player.maxHp
+                            ? "bg-amber-500 hover:bg-amber-400 text-slate-950"
+                            : "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
+                        }`}
+                      >
+                        🪙 {shopHealPrice} G
+                      </button>
+                    </div>
+
+                    {/* Max HP Increase */}
+                    <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-rose-300">実験室セキュリティ強化（最大HP増加）</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">最大体力を +5 増加させ、HPも 5 回復します。</p>
+                      </div>
+                      <button
+                        disabled={gold < shopMaxHpPrice}
+                        onClick={() => handleBuyMaxHp(shopMaxHpPrice)}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition ${
+                          gold >= shopMaxHpPrice
+                            ? "bg-amber-500 hover:bg-amber-400 text-slate-950"
+                            : "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
+                        }`}
+                      >
+                        🪙 {shopMaxHpPrice} G
+                      </button>
+                    </div>
+
+                    {/* Hand Limit Increase */}
+                    <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-cyan-400">ドラフト回路拡張（手札上限増加）</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">
+                          手札上限を+1増やします。最大4回まで。（現在: {handLimitUpgradeCount}/4回）
+                        </p>
+                      </div>
+                      {handLimitUpgradeCount >= 4 ? (
+                        <span className="text-xs text-green-500 font-bold px-3 py-1.5 bg-slate-950 rounded-lg border border-slate-800">MAX</span>
+                      ) : (
+                        <button
+                          disabled={gold < [100, 200, 400, 800][handLimitUpgradeCount]}
+                          onClick={handleBuyHandLimit}
+                          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition ${
+                            gold >= [100, 200, 400, 800][handLimitUpgradeCount]
+                              ? "bg-amber-500 hover:bg-amber-400 text-slate-950"
+                              : "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
+                          }`}
+                        >
+                          🪙 {[100, 200, 400, 800][handLimitUpgradeCount]} G
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* EVENT SCREEN */}
+          {gameState === "event" && activeEvent && (
+            <motion.div 
+              key="event-screen"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col items-center justify-center py-16 px-4 text-center max-w-lg mx-auto"
+            >
+              <div className="bg-slate-900/90 border border-slate-800 p-8 rounded-2xl flex flex-col items-center gap-6 shadow-2xl relative overflow-hidden">
+                <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+                
+                <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-full">
+                  <Sparkles className="w-12 h-12 text-purple-400 animate-pulse" />
+                </div>
+
+                <h3 className="text-xl font-bold text-white font-display">未知の遭遇 (Event Node)</h3>
+                
+                <p className="text-sm text-slate-300 leading-relaxed font-sans px-2">
+                  {activeEvent.description}
+                </p>
+
+                {/* 獲得成果のハイライト */}
+                <div className="w-full bg-slate-950/60 border border-slate-850 p-4 rounded-xl flex items-center justify-between text-left font-mono">
+                  <span className="text-xs text-slate-500 font-sans">獲得結果:</span>
+                  {activeEvent.type === "heal" && (
+                    <span className="text-sm text-rose-400 font-bold flex items-center gap-1">
+                      💚 プレイヤーの体力回復 (+{activeEvent.value})
+                    </span>
+                  )}
+                  {activeEvent.type === "gold" && (
+                    <span className="text-sm text-amber-400 font-bold flex items-center gap-1">
+                      🪙 ゴールド獲得 (+{activeEvent.value} G)
+                    </span>
+                  )}
+                  {activeEvent.type === "card" && (
+                    <span className="text-sm text-cyan-400 font-bold flex items-center gap-1">
+                      🎴 元素カード「{activeEvent.value}」をデッキへ追加
+                    </span>
+                  )}
+                </div>
+
                 <button
-                  id="btn-gameover-retry"
-                  onClick={returnToTitle}
-                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-sm rounded-xl transition duration-200"
+                  id="btn-event-continue"
+                  onClick={() => {
+                    setGameState("dungeon_map");
+                    setActiveEvent(null);
+                  }}
+                  className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm rounded-xl transition duration-200 shadow-md cursor-pointer"
                 >
-                  敵の選択に戻り、再実験する
+                  探索を続ける（ダンジョンマップに戻る）
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* GAME CLEAR SCREEN */}
+          {gameState === "game_clear" && (
+            <motion.div 
+              key="game-clear-screen"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col items-center justify-center py-16 px-4 text-center max-w-md mx-auto"
+            >
+              <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-full mb-6 shadow-[0_0_30px_rgba(245,158,11,0.2)] animate-bounce">
+                <Sparkles className="w-14 h-14 text-amber-400" />
+              </div>
+              
+              <h2 className="text-2xl md:text-3xl font-display font-bold text-amber-400 mb-2">🏆 ダンジョンクリア！ 🏆</h2>
+              <p className="text-sm text-slate-400 mb-8 leading-relaxed">
+                研究室最深部のBOSSを見事に化学反応の力で圧倒しました！化学を愛する凄腕のプレイヤーとして、ここにテストプレイの終了を讃えます。
+              </p>
+
+              <div className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 text-left font-mono text-xs flex flex-col gap-2">
+                <h4 className="font-bold text-slate-300 border-b border-slate-800 pb-2 mb-1 font-display">最終冒険リザルト</h4>
+                <p className="flex justify-between py-0.5">
+                  <span>プレイヤー生存HP:</span>
+                  <span className="text-rose-400 font-bold">{player.hp} / {player.maxHp}</span>
+                </p>
+                <p className="flex justify-between py-0.5">
+                  <span>所持ゴールド:</span>
+                  <span className="text-amber-400 font-bold">{gold} G</span>
+                </p>
+                <p className="flex justify-between py-0.5">
+                  <span>最終手札上限:</span>
+                  <span className="text-cyan-400 font-bold">{handLimit} 枚</span>
+                </p>
+                <p className="flex justify-between py-0.5">
+                  <span>獲得実験器具:</span>
+                  <span className="text-slate-300 font-bold">{ownedArtifacts.length > 0 ? ownedArtifacts.join(", ") : "なし"}</span>
+                </p>
+                <p className="flex justify-between py-0.5">
+                  <span>デッキ内総カード数:</span>
+                  <span className="text-slate-300 font-bold">{globalDeck.length} 枚</span>
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 w-full">
+                <button
+                  id="btn-clear-return"
+                  onClick={returnToTitle}
+                  className="w-full py-3 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-bold text-sm rounded-xl transition duration-200 cursor-pointer"
+                >
+                  タイトル画面に戻る
                 </button>
               </div>
             </motion.div>
@@ -1788,10 +2869,10 @@ export default function App() {
             >
               <div className="px-5 py-4 border-b border-slate-800 bg-slate-950 flex justify-between items-center">
                 <h4 className="font-display font-bold text-base text-white">
-                  墓地回収（サルベージ）
+                  墓地回収（サルベージ） - 残り {salvageCount} 枚
                 </h4>
                 <button 
-                  onClick={() => setShowGraveSalvage(false)}
+                  onClick={() => cleanupAfterSalvage(tempEffectZone)}
                   className="text-xs bg-rose-950/40 hover:bg-rose-900 px-2.5 py-1 rounded border border-rose-800 text-rose-300 transition"
                 >
                   回収をキャンセル
@@ -1800,7 +2881,7 @@ export default function App() {
 
               <div className="p-5 overflow-y-auto flex-1 bg-slate-950/30">
                 <p className="text-xs text-slate-400 mb-4 font-sans">
-                  墓地から好きなカードを1枚選択して手札に加えることができます。
+                  墓地から好きなカードを選択して手札に加えることができます。現在の化合物による残り回収枠は <strong>{salvageCount} 枚</strong> です。
                 </p>
 
                 {grave.length === 0 ? (
@@ -1819,6 +2900,87 @@ export default function App() {
                     ))}
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* BROKEN FLASK PURGE DIALOG (MODAL) */}
+      <AnimatePresence>
+        {showPurgeModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              className="bg-slate-900 border border-red-500/30 rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-[0_0_50px_rgba(239,68,68,0.15)] overflow-hidden"
+            >
+              <div className="px-5 py-4 border-b border-slate-800 bg-slate-950 flex justify-between items-center">
+                <div>
+                  <h4 className="font-display font-bold text-base text-red-400 flex items-center gap-2">
+                    🧪 割れたフラスコ：負のエネルギー（カード5枚の消滅）
+                  </h4>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    デッキから永久に消滅（削除）させる元素カードを正確に 5 枚選んでください。
+                  </p>
+                </div>
+                <span className="text-xs font-mono font-bold text-red-400 bg-red-950/30 border border-red-900/50 px-2.5 py-1 rounded-lg">
+                  選択中: {purgeSelectedCardIds.length} / 5 枚
+                </span>
+              </div>
+
+              <div className="p-5 overflow-y-auto flex-1 bg-slate-950/30">
+                <div className="grid grid-cols-4 gap-2.5">
+                  {globalDeck.map((card) => {
+                    const isSelected = purgeSelectedCardIds.includes(card.id);
+                    return (
+                      <button 
+                        key={card.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setPurgeSelectedCardIds(prev => prev.filter(id => id !== card.id));
+                          } else {
+                            if (purgeSelectedCardIds.length >= 5) return;
+                            setPurgeSelectedCardIds(prev => [...prev, card.id]);
+                          }
+                        }}
+                        className={`p-2.5 rounded-lg border flex flex-col justify-between items-center text-center font-display hover:scale-105 active:scale-95 transition cursor-pointer relative ${card.bgClass} ${
+                          isSelected 
+                            ? "border-red-500 ring-2 ring-red-500/50 bg-red-950/20" 
+                            : card.borderClass
+                        }`}
+                      >
+                        {isSelected && (
+                          <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 text-[8px] font-bold w-4 h-4 flex items-center justify-center shadow-md">
+                            ✕
+                          </div>
+                        )}
+                        <span className={`text-base font-bold ${isSelected ? "text-red-400" : card.textColor}`}>{card.type}</span>
+                        <span className="text-[8px] text-slate-400 font-mono mt-1 leading-tight">{card.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-slate-800 bg-slate-950 flex gap-3">
+                <button
+                  disabled={purgeSelectedCardIds.length !== 5}
+                  onClick={handlePurgeComplete}
+                  className={`w-full py-3 rounded-xl font-bold text-sm transition cursor-pointer ${
+                    purgeSelectedCardIds.length === 5
+                      ? "bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-950/50"
+                      : "bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed"
+                  }`}
+                >
+                  選択した5枚を消滅させ、実験器具を入手する
+                </button>
               </div>
             </motion.div>
           </motion.div>
