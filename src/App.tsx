@@ -124,7 +124,7 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>H<sub>2</sub>O</span>),
     elements: { H: 2, O: 1 },
     description: "最も基本的で生命に不可欠な化合物。素早くシールドを張り、微細な攻撃を行う。",
-    testPlayEffect: "敵に1ダメージを与える。自身に3のシールドを付与する。",
+    testPlayEffect: "敵に3ダメージを与える。自身に3のシールドを付与し、カードを1枚引く。",
     implemented: true
   },
   {
@@ -133,7 +133,7 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>NH<sub>3</sub></span>),
     elements: { N: 1, H: 3 },
     description: "刺激臭のある気体。他の化合物と組み合わせることで真価を発揮する毒素の触媒。",
-    testPlayEffect: "敵に2ダメージを与える。このターンにすでに水（H2O）を合成していたなら、対象に「毒デバフ（カウント+1）」を付与する。",
+    testPlayEffect: "敵に4ダメージを与える。このターンにすでに水（H2O）を合成していたなら、対象に「毒デバフ（カウント+3）」を付与する。",
     implemented: true
   },
   {
@@ -142,7 +142,7 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>CO</span>),
     elements: { C: 1, O: 1 },
     description: "無色無臭だが極めて有害な気体。相手に静かに浸透し、継続的なダメージを付与する。",
-    testPlayEffect: "敵に「毒デバフ（カウント+1）」を付与する。",
+    testPlayEffect: "敵に「毒デバフ」（カウント1）を付与し、カードを1枚引く。",
     implemented: true
   },
   {
@@ -151,7 +151,7 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>CO<sub>2</sub></span>),
     elements: { C: 1, O: 2 },
     description: "温暖化を招くガス。窒息性の衝撃と同時に、対象に強力な毒素を流し込む。",
-    testPlayEffect: "敵に2ダメージを与え、さらに「毒デバフ（カウント+1）」を付与する。",
+    testPlayEffect: "敵に4ダメージを与え、さらに「毒デバフ」（カウント1）を付与する。",
     implemented: true
   },
   {
@@ -160,7 +160,7 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>NO</span>),
     elements: { N: 1, O: 1 },
     description: "血管拡張などの生理活性を持つ。危険から身を守るためのシールドを展開する。",
-    testPlayEffect: "自分に2のシールドを付与する。",
+    testPlayEffect: "自分に2のシールドを付与する。さらに墓地から好きなカードを1枚選び手札に加える。",
     implemented: true
   },
   {
@@ -169,7 +169,7 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>NO<sub>2</sub></span>),
     elements: { N: 1, O: 2 },
     description: "赤褐色の有毒な気体。非常に強力なシールドを貼るが、反動で自身も毒に侵される。",
-    testPlayEffect: "自分に5のシールドを付与するが、同時に自分自身に「毒デバフ（カウント+1）」を付与する。",
+    testPlayEffect: "自分に5のシールドを付与する。さらに墓地から好きなカードを1枚選び手札に加える。",
     implemented: true
   },
   {
@@ -178,7 +178,7 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>H<sub>2</sub>O<sub>2</sub></span>),
     elements: { H: 2, O: 2 },
     description: "漂白剤や消毒剤として使われる。激しい酸化力で敵を蝕みつつ、自身を保護するシールドを生成する。",
-    testPlayEffect: "敵に2ダメージを与える。自身に3のシールドを付与する。",
+    testPlayEffect: "敵に2ダメージを与える。自身に3のシールドを付与し、墓地の水素（H）カードをすべて山札に戻す。",
     implemented: true
   },
   // 未実装レシピのプレースホルダー（図鑑に51種の一部として表記）
@@ -373,6 +373,7 @@ export default function App() {
   const [hand, setHand] = useState<ElementCard[]>([]);
   const [grave, setGrave] = useState<ElementCard[]>([]);
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
+  const [showGraveSalvage, setShowGraveSalvage] = useState<boolean>(false);
 
   // 非同期の setTimeout コールバック内などで最新のカードデータを参照するための refs
   const deckRef = useRef(deck);
@@ -522,6 +523,22 @@ export default function App() {
     }
   };
 
+  const handleSalvageCard = (cardId: string) => {
+    const targetCard = grave.find(c => c.id === cardId);
+    if (!targetCard) {
+      setShowGraveSalvage(false);
+      return;
+    }
+    
+    // 手札に追加
+    setHand(prevHand => [...prevHand, targetCard]);
+    // 墓地から削除
+    setGrave(prevGrave => prevGrave.filter(c => c.id !== cardId));
+    
+    addLog(`墓地から「${targetCard.name}」を手札に戻しました。`);
+    setShowGraveSalvage(false);
+  };
+
   // カード選択トグル
   const toggleCardSelection = (id: string) => {
     setSelectedCardIds(prev => {
@@ -587,6 +604,9 @@ export default function App() {
     let nextPlayer = { ...player };
     let nextEnemy = { ...enemy };
     let compoundLog = "";
+    let drawCountAfter = 0;
+    let returnHydrogenAfter = false;
+    let triggerGraveSalvage = false;
 
     // プレイヤーにかかっている「恐怖」デバフチェック
     const isPlayerFeared = player.debuffs.some(d => d.name === "恐怖" && d.count > 0);
@@ -594,12 +614,11 @@ export default function App() {
     // 各化合物の具体的な効果処理
     switch (matchedCompound.name) {
       case "水": {
-        // 敵に1ダメージ、自身に3シールド
-        let dmg = 1;
-        // 恐怖：与ダメージ半減（切り捨て）。1の半減は0
+        // 敵に3ダメージ、自身に3シールド、1枚ドロー
+        let dmg = 3;
         if (isPlayerFeared) {
-          dmg = 0;
-          addLog("（プレイヤーが「恐怖」状態のため、与えるダメージが半減し0になりました）");
+          dmg = 1; // 3の半減は1
+          addLog("（プレイヤーが「恐怖」状態のため、与えるダメージが半減しました）");
         }
         // 敵がスライムなら〈液状生命体〉により水素含むダメージ-1
         if (enemy.id === "enemy-slime" && dmg > 0) {
@@ -613,16 +632,17 @@ export default function App() {
         nextEnemy.shield -= shieldDmg;
         nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
         nextPlayer.shield += 3;
+        drawCountAfter = 1;
         
         setThisTurnH2OSynthesized(true);
-        compoundLog = `「水」の効果：敵に ${dmg} ダメージを与え、自分に 3 のシールドを付与した。${shieldDmg > 0 ? `(敵のシールドが ${shieldDmg} 吸収)` : ""}`;
+        compoundLog = `「水」の効果：敵に ${dmg} ダメージを与え、自分に 3 のシールドを付与し、カードを 1 枚引いた。${shieldDmg > 0 ? `(敵のシールドが ${shieldDmg} 吸収)` : ""}`;
         break;
       }
       case "アンモニア": {
-        // 敵に2ダメージ。水（H2O）を合成していたなら毒デバフ
-        let dmg = 2;
+        // 敵に4ダメージ。水（H2O）を合成していたなら毒デバフ（カウント+3）
+        let dmg = 4;
         if (isPlayerFeared) {
-          dmg = 1; // 2の半減は1
+          dmg = 2; // 4の半減は2
           addLog("（プレイヤーが「恐怖」状態のため、与えるダメージが半減しました）");
         }
         if (enemy.id === "enemy-slime" && dmg > 0) {
@@ -640,22 +660,22 @@ export default function App() {
         if (thisTurnH2OSynthesized) {
           const existingPoison = nextEnemy.debuffs.find(d => d.name === "毒");
           if (existingPoison) {
-            existingPoison.count += 1;
+            existingPoison.count += 3;
           } else {
             nextEnemy.debuffs.push({
               name: "毒",
-              count: 1,
+              count: 3,
               description: "相手のターン終了時、このカウント数だけのダメージを受ける。さらに蓄積するとカウントが増える。"
             });
           }
           poisonAdded = true;
         }
 
-        compoundLog = `「アンモニア」の効果：敵に ${dmg} ダメージを与えた。${poisonAdded ? "（このターン、すでに水を合成していたため「毒デバフ（カウント1）」を付与！）" : ""}`;
+        compoundLog = `「アンモニア」の効果：敵に ${dmg} ダメージを与えた。${poisonAdded ? "（このターン、すでに水を合成していたため「毒デバフ（カウント3）」を付与！）" : ""}`;
         break;
       }
       case "一酸化炭素": {
-        // 敵に毒デバフ（カウント1）
+        // 敵に毒デバフ（カウント1）、1枚ドロー
         const existingPoison = nextEnemy.debuffs.find(d => d.name === "毒");
         if (existingPoison) {
           existingPoison.count += 1;
@@ -666,14 +686,15 @@ export default function App() {
             description: "相手のターン終了時、このカウント数だけのダメージを受ける。さらに蓄積するとカウントが増える。"
           });
         }
-        compoundLog = `「一酸化炭素」の効果：敵に「毒デバフ（カウント1）」を付与した。`;
+        drawCountAfter = 1;
+        compoundLog = `「一酸化炭素」の効果：敵に「毒デバフ（カウント1）」を付与し、カードを 1 枚引いた。`;
         break;
       }
       case "二酸化炭素": {
-        // 敵に2ダメージ、毒デバフ（カウント1）
-        let dmg = 2;
+        // 敵に4ダメージ、毒デバフ（カウント1）
+        let dmg = 4;
         if (isPlayerFeared) {
-          dmg = 1;
+          dmg = 2; // 4の半減は2
           addLog("（プレイヤーが「恐怖」状態のため、与えるダメージが半減しました）");
         }
 
@@ -698,29 +719,21 @@ export default function App() {
         break;
       }
       case "一酸化窒素": {
-        // 自分に2シールド
+        // 自分に2シールド、墓地から1枚選んで手札に加える
         nextPlayer.shield += 2;
+        triggerGraveSalvage = true;
         compoundLog = `「一酸化窒素」の効果：自分に 2 のシールドを付与した。`;
         break;
       }
       case "二酸化窒素": {
-        // 自分に5シールド、自分自身に毒デバフ（カウント1）
+        // 自分に5シールド、墓地から1枚選んで手札に加える（ペナルティの毒は削除）
         nextPlayer.shield += 5;
-        const existingPoison = nextPlayer.debuffs.find(d => d.name === "毒");
-        if (existingPoison) {
-          existingPoison.count += 1;
-        } else {
-          nextPlayer.debuffs.push({
-            name: "毒",
-            count: 1,
-            description: "自分のターン終了時、このカウント数だけのダメージを受ける。ターン終了時にカウントが1減る。"
-          });
-        }
-        compoundLog = `「二酸化窒素」の効果：自分に 5 のシールドを付与したが、代償として自分自身に「毒デバフ（カウント1）」が付与された。`;
+        triggerGraveSalvage = true;
+        compoundLog = `「二酸化窒素」の効果：自分に 5 のシールドを付与した。`;
         break;
       }
       case "過酸化水素": {
-        // 敵に2ダメージ、自身に3シールド
+        // 敵に2ダメージ、自身に3シールド、墓地の水素を全て山札に戻す
         let dmg = 2;
         if (isPlayerFeared) {
           dmg = 1;
@@ -737,6 +750,7 @@ export default function App() {
         nextEnemy.shield -= shieldDmg;
         nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
         nextPlayer.shield += 3;
+        returnHydrogenAfter = true;
 
         compoundLog = `「過酸化水素」の効果：敵に ${dmg} ダメージを与え、自分に 3 のシールドを付与した。`;
         break;
@@ -751,18 +765,62 @@ export default function App() {
     const usedCards = hand.filter(c => selectedCardIds.includes(c.id));
     const remainingHand = hand.filter(c => !selectedCardIds.includes(c.id));
     
-    setGrave(prev => [...prev, ...usedCards]);
-    setHand(remainingHand);
+    let updatedGrave = [...grave, ...usedCards];
+    let updatedHand = remainingHand;
+    let updatedDeck = [...deck];
+
+    // 過酸化水素：墓地の水素（H）をすべて山札に戻す
+    if (returnHydrogenAfter) {
+      const hydrogenInGrave = updatedGrave.filter(c => c.type === "H");
+      if (hydrogenInGrave.length > 0) {
+        // 墓地から水素を削除
+        updatedGrave = updatedGrave.filter(c => c.type !== "H");
+        // 山札に追加
+        updatedDeck = [...updatedDeck, ...hydrogenInGrave];
+        
+        // シャッフル
+        for (let i = updatedDeck.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [updatedDeck[i], updatedDeck[j]] = [updatedDeck[j], updatedDeck[i]];
+        }
+        addLog(`【山札還流】墓地の水素（H）カード ${hydrogenInGrave.length} 枚をすべて山札に戻し、シャッフルしました。`);
+      } else {
+        addLog("（墓地に水素カードがなかったため、山札に戻す処理は行われませんでした）");
+      }
+    }
+
+    // まずカードの移動状態を反映
+    setGrave(updatedGrave);
+    setHand(updatedHand);
     setSelectedCardIds([]);
+    setDeck(updatedDeck);
 
     // 敵の死亡チェック
     if (nextEnemy.hp <= 0) {
       setEnemy(nextEnemy);
       setPlayer(nextPlayer);
       handleBattleVictory();
+      return; // 勝利したらモーダル起動やドローは行わない
     } else {
       setEnemy(nextEnemy);
       setPlayer(nextPlayer);
+    }
+
+    // ドロー処理がある場合
+    if (drawCountAfter > 0) {
+      // タイムアウトなしで同期的に最新の状態でドロー
+      drawCards(updatedDeck, updatedHand, updatedGrave, drawCountAfter);
+    }
+
+    // 墓地回収がある場合
+    if (triggerGraveSalvage) {
+      // 回収対象が墓地にあるか
+      if (updatedGrave.length > 0) {
+        setShowGraveSalvage(true);
+        addLog("墓地から手札に加えるカードを1枚選んでください。");
+      } else {
+        addLog("（墓地が空のため、カードを回収できませんでした）");
+      }
     }
   };
 
@@ -1704,6 +1762,60 @@ export default function App() {
                         <span className={`text-sm font-bold ${card.textColor}`}>{card.type}</span>
                         <span className="text-[8px] text-slate-400 font-mono mt-0.5">{card.name}</span>
                       </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* GRAVE SALVAGE DIALOG (MODAL) */}
+      <AnimatePresence>
+        {showGraveSalvage && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl overflow-hidden"
+            >
+              <div className="px-5 py-4 border-b border-slate-800 bg-slate-950 flex justify-between items-center">
+                <h4 className="font-display font-bold text-base text-white">
+                  墓地回収（サルベージ）
+                </h4>
+                <button 
+                  onClick={() => setShowGraveSalvage(false)}
+                  className="text-xs bg-rose-950/40 hover:bg-rose-900 px-2.5 py-1 rounded border border-rose-800 text-rose-300 transition"
+                >
+                  回収をキャンセル
+                </button>
+              </div>
+
+              <div className="p-5 overflow-y-auto flex-1 bg-slate-950/30">
+                <p className="text-xs text-slate-400 mb-4 font-sans">
+                  墓地から好きなカードを1枚選択して手札に加えることができます。
+                </p>
+
+                {grave.length === 0 ? (
+                  <p className="text-xs text-slate-500 text-center py-8">墓地にカードはありません。</p>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2.5">
+                    {grave.map((card, i) => (
+                      <button 
+                        key={card.id + "-" + i}
+                        onClick={() => handleSalvageCard(card.id)}
+                        className={`p-2.5 rounded-lg border flex flex-col justify-between items-center text-center font-display hover:scale-105 active:scale-95 transition cursor-pointer ${card.bgClass} ${card.borderClass} ${card.glowClass}`}
+                      >
+                        <span className={`text-base font-bold ${card.textColor}`}>{card.type}</span>
+                        <span className="text-[9px] text-slate-300 font-sans mt-1 leading-tight">{card.name}</span>
+                      </button>
                     ))}
                   </div>
                 )}
