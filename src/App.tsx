@@ -464,6 +464,7 @@ const createEnemyTemplate = (type: "slime" | "bat" | "ghost"): Enemy => {
 export default function App() {
   // --- Permanent Dungeon State ---
   const [gold, setGold] = useState<number>(100);
+  const [earnedGoldAmount, setEarnedGoldAmount] = useState<number>(0);
   const [handLimit, setHandLimit] = useState<number>(6);
   const [handLimitUpgradeCount, setHandLimitUpgradeCount] = useState<number>(0);
   const [ownedArtifacts, setOwnedArtifacts] = useState<string[]>([]);
@@ -618,7 +619,7 @@ export default function App() {
     setActiveTab("battle");
 
     // 初期ドロー枚数の算出
-    let initialDrawCount = 5;
+    let initialDrawCount = handLimit;
     if (ownedArtifacts.includes("丸底フラスコ")) {
       initialDrawCount += 1;
     }
@@ -1293,8 +1294,8 @@ export default function App() {
       shield: 0
     }));
 
-    // ターン開始時の引く枚数の算出（基本5枚、丸底フラスコで+1、割れたフラスコで-1）
-    let drawCount = 5;
+    // ターン開始時の引く枚数の算出（基本は手札上限、丸底フラスコで+1、割れたフラスコで-1）
+    let drawCount = handLimit;
     if (ownedArtifacts.includes("丸底フラスコ")) {
       drawCount += 1;
     }
@@ -1315,6 +1316,7 @@ export default function App() {
       : Math.floor(Math.random() * 21) + 40;  // 40〜60ゴールド
     
     setGold(prev => prev + earnedGold);
+    setEarnedGoldAmount(earnedGold);
     addLog(`【戦闘勝利】敵を撃破しました！報酬として ${earnedGold} ゴールドを獲得しました！`);
     
     // ダンジョンマップの現在位置を完了状態にする
@@ -1338,6 +1340,7 @@ export default function App() {
     setHandLimit(6);
     setHandLimitUpgradeCount(0);
     setOwnedArtifacts([]);
+    setActiveTab("battle");
     
     // ダンジョンマップ生成
     const newMap = generateDungeonMap();
@@ -1357,6 +1360,7 @@ export default function App() {
   // ショップに入る
   const enterShopNode = (nodeId: string) => {
     setCurrentNodeId(nodeId);
+    setActiveTab("battle");
     
     // 金額補正（-20 〜 +20）
     const generatePrice = (base: number) => {
@@ -1464,6 +1468,7 @@ export default function App() {
   // イベントに入る
   const enterEventNode = (nodeId: string) => {
     setCurrentNodeId(nodeId);
+    setActiveTab("battle");
     
     // ランダムに1つ発動
     const eventType = ["heal", "gold", "card"][Math.floor(Math.random() * 3)] as "heal" | "gold" | "card";
@@ -1755,13 +1760,15 @@ export default function App() {
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    <button 
-                      id="btn-return-title"
-                      onClick={returnToTitle}
-                      className="px-2.5 py-1 bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded text-slate-300 transition"
-                    >
-                      敵を選択しなおす
-                    </button>
+                    {!currentNodeId && (
+                      <button 
+                        id="btn-return-title"
+                        onClick={returnToTitle}
+                        className="px-2.5 py-1 bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded text-slate-300 transition"
+                      >
+                        敵を選択しなおす
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -2047,7 +2054,7 @@ export default function App() {
                 <div className="flex flex-col gap-2.5">
                   <div className="flex justify-between items-center px-1">
                     <span className="text-xs text-slate-400 font-mono font-bold">
-                      手札 ({hand.length} / 6 枚)
+                      手札 ({hand.length} / {handLimit} 枚)
                     </span>
                     <span className="text-[10px] text-slate-500 font-mono">
                       ※カードをクリック/タップして合成選択
@@ -2300,6 +2307,10 @@ export default function App() {
                   <span>生存ターン数:</span>
                   <span className="text-slate-300 font-bold">{turn} ターン</span>
                 </p>
+                <p className="flex justify-between py-1 border-t border-slate-800/50 mt-1 pt-1">
+                  <span>獲得ゴールド:</span>
+                  <span className="text-amber-400 font-bold">+{earnedGoldAmount} Gold</span>
+                </p>
               </div>
 
               <div className="flex flex-col gap-3 w-full">
@@ -2414,24 +2425,24 @@ export default function App() {
 
                 {/* 2Dルートマップ風 UI */}
                 <div className="py-8 px-4 flex flex-col gap-6 bg-slate-950/50 rounded-xl border border-slate-900 relative">
-                  {/* 深さ 1 から 5 までをループ */}
-                  {[1, 2, 3, 4, 5].map(depth => {
+                  {/* 深さ 0 から 4 までをループ */}
+                  {[0, 1, 2, 3, 4].map(depth => {
                     const nodesInDepth = dungeonMap.filter(n => n.depth === depth);
                     return (
                       <div key={depth} className="flex flex-col gap-3">
                         <div className="flex justify-between items-center text-[10px] font-mono text-slate-600 border-b border-slate-900 pb-1.5">
-                          <span>DEPTH 0{depth}</span>
-                          {depth === 5 && <span className="text-amber-500 font-bold flex items-center gap-1">👑 FINAL BOSS</span>}
+                          <span>DEPTH 0{depth + 1}</span>
+                          {depth === 4 && <span className="text-amber-500 font-bold flex items-center gap-1">👑 FINAL BOSS</span>}
                         </div>
                         <div className="flex justify-around items-center py-2 gap-4">
                           {nodesInDepth.map(node => {
                             // 選択可能かの判定
                             let canSelect = false;
-                            if (depth === 1 && !currentNodeId) {
+                            if (node.depth === 0 && !currentNodeId) {
                               canSelect = true; // 最初のマス
                             } else if (currentNodeId) {
                               const currentNode = dungeonMap.find(n => n.id === currentNodeId);
-                              if (currentNode && isNodeConnected(currentNode, node) && currentNode.completed) {
+                              if (currentNode && isNodeConnected(currentNode.id, node) && currentNode.completed) {
                                 canSelect = true; // 現在のマスが完了していて、道がつながっている
                               }
                             }
@@ -2451,7 +2462,7 @@ export default function App() {
                               icon = "💎";
                               typeText = "イベント";
                               styleClass = "bg-purple-950/10 border-purple-500/20 text-purple-400 hover:border-purple-400/50";
-                            } else if (depth === 5) {
+                            } else if (depth === 4) {
                               icon = "👹";
                               typeText = "BOSS";
                               styleClass = "bg-rose-950/20 border-rose-500/30 text-rose-400 hover:border-rose-500";
@@ -2475,7 +2486,7 @@ export default function App() {
                                     const enemies: ("slime" | "bat" | "ghost")[] = ["slime", "bat", "ghost"];
                                     const randEnemy = enemies[Math.floor(Math.random() * enemies.length)];
                                     setCurrentNodeId(node.id);
-                                    startBattle(randEnemy, depth === 5); // 5層目ならボス
+                                    startBattle(randEnemy, depth === 4); // 5層目(インデックス4)ならボス
                                   } else if (node.type === "shop") {
                                     enterShopNode(node.id);
                                   } else {
@@ -2525,6 +2536,7 @@ export default function App() {
                     </p>
                   </div>
                   <button 
+                    id="btn-shop-exit"
                     onClick={() => {
                       // ショップマスを完了にしてマップに戻る
                       if (currentNodeId) {
@@ -2535,6 +2547,7 @@ export default function App() {
                           return node;
                         }));
                       }
+                      setActiveTab("battle");
                       setGameState("dungeon_map");
                     }}
                     className="px-4 py-2 bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 text-xs font-bold rounded-lg cursor-pointer"
