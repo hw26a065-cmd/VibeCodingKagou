@@ -22,7 +22,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 
 // --- Types ---
-type ElementType = "H" | "O" | "C" | "N";
+type ElementType = "H" | "O" | "C" | "N" | "Cl" | "S" | "Cu" | "Fe" | "Na" | "K" | "Ca" | "F";
 
 interface DungeonNode {
   id: string;
@@ -138,10 +138,11 @@ interface ElementCard {
   bgClass: string;
   borderClass: string;
   glowClass: string;
+  disposable?: boolean;
 }
 
 interface BuffDebuff {
-  name: "恐怖" | "毒";
+  name: "恐怖" | "毒" | "回収反応" | "シールド持続" | "酸素供給";
   count: number;
   description: string;
 }
@@ -219,6 +220,70 @@ const ELEMENT_DEFS: { [key in ElementType]: { name: string; color: string; textC
     bgClass: "bg-purple-950/80", 
     borderClass: "border-purple-500/50",
     glowClass: "shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+  },
+  Cl: { 
+    name: "塩素", 
+    color: "#10b981", 
+    textColor: "text-emerald-300", 
+    bgClass: "bg-emerald-950/80", 
+    borderClass: "border-emerald-500/50",
+    glowClass: "shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+  },
+  S: { 
+    name: "硫黄", 
+    color: "#f59e0b", 
+    textColor: "text-amber-300", 
+    bgClass: "bg-amber-950/80", 
+    borderClass: "border-amber-500/50",
+    glowClass: "shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+  },
+  Cu: { 
+    name: "銅", 
+    color: "#ea580c", 
+    textColor: "text-orange-400", 
+    bgClass: "bg-orange-950/80", 
+    borderClass: "border-orange-500/50",
+    glowClass: "shadow-[0_0_15px_rgba(234,88,12,0.3)]"
+  },
+  Fe: { 
+    name: "鉄", 
+    color: "#64748b", 
+    textColor: "text-slate-400", 
+    bgClass: "bg-slate-800/80", 
+    borderClass: "border-slate-500/50",
+    glowClass: "shadow-[0_0_15px_rgba(100,116,139,0.3)]"
+  },
+  Na: { 
+    name: "ナトリウム", 
+    color: "#6366f1", 
+    textColor: "text-indigo-300", 
+    bgClass: "bg-indigo-950/80", 
+    borderClass: "border-indigo-500/50",
+    glowClass: "shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+  },
+  K: { 
+    name: "カリウム", 
+    color: "#06b6d4", 
+    textColor: "text-cyan-300", 
+    bgClass: "bg-cyan-950/80", 
+    borderClass: "border-cyan-500/50",
+    glowClass: "shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+  },
+  Ca: { 
+    name: "カルシウム", 
+    color: "#94a3b8", 
+    textColor: "text-slate-300", 
+    bgClass: "bg-slate-900/80", 
+    borderClass: "border-slate-500/50",
+    glowClass: "shadow-[0_0_15px_rgba(148,163,184,0.3)]"
+  },
+  F: { 
+    name: "フッ素", 
+    color: "#ec4899", 
+    textColor: "text-pink-300", 
+    bgClass: "bg-pink-950/80", 
+    borderClass: "border-pink-500/50",
+    glowClass: "shadow-[0_0_15px_rgba(236,72,153,0.3)]"
   }
 };
 
@@ -286,17 +351,50 @@ const RECIPES: CompoundRecipe[] = [
     testPlayEffect: "・敵に2ダメージを与える\n・自身に3 of シールドを付与し、墓地の水素（H）カードをすべて山札に戻す",
     implemented: true
   },
-  // 未実装レシピのプレースホルダー（図鑑に51種の一部として表記）
-  { name: "炭酸", formula: "H2CO3", formulaDisplay: (<span>H<sub>2</sub>CO<sub>3</sub></span>), elements: { H: 2, C: 1, O: 3 }, description: "爽快な気泡。二酸化炭素が水に溶けたもの。大量のダメージを与え、さらに手札の枚数に応じた強力な毒素を流し込む。", testPlayEffect: "・敵に5ダメージを与える\n・カードを3枚引く\n・引いた後の手札の枚数分「毒デバフ」を敵に付与する", implemented: true },
+  { name: "炭酸", formula: "H2CO3", formulaDisplay: (<span>H<sub>2</sub>CO<sub>3</sub></span>), elements: { H: 2, C: 1, O: 3 }, description: "二酸化炭素が水に溶けたもの。大量のダメージを与え、さらに手札の枚数に応じた強力な毒素を流し込む。", testPlayEffect: "・敵に5ダメージを与える\n・カードを3枚引く\n・引いた後の手札の枚数分「毒デバフ」を敵に付与する", implemented: true },
   { name: "シュウ酸", formula: "H2C2O4", formulaDisplay: (<span>H<sub>2</sub>C<sub>2</sub>O<sub>4</sub></span>), elements: { H: 2, C: 2, O: 4 }, description: "植物に含まれる酸。効果は今後実装予定。", implemented: false },
-  { name: "酢酸", formula: "CH3COOH", formulaDisplay: (<span>CH<sub>3</sub>COOH</span>), elements: { C: 2, H: 4, O: 2 }, description: "酸味の主成分。手札上限拡張が必要なレシピ。", implemented: false },
+  { name: "酢酸", formula: "CH3COOH", formulaDisplay: (<span>CH<sub>3</sub>COOH</span>), elements: { C: 2, H: 4, O: 2 }, description: "酸味の主成分。手札上限拡張が必要なレシピ。効果は今後実装予定。", implemented: false },
   { name: "硝酸", formula: "HNO3", formulaDisplay: (<span>HNO<sub>3</sub></span>), elements: { H: 1, N: 1, O: 3 }, description: "極めて強い酸性を持つ。激しい反応性で敵にダメージを与え、墓地から好きなカードを2枚手札に戻す。", testPlayEffect: "・敵に4ダメージを与える\n・墓地から好きなカードを2枚選んで手札に加える", implemented: true },
   { name: "亜硝酸", formula: "HNO2", formulaDisplay: (<span>HNO<sub>2</sub></span>), elements: { H: 1, N: 1, O: 2 }, description: "不安定な一価の酸。敵にダメージを与え、墓地から好きなカードを1枚手札に戻す。さらにこの合成に使用したカードは墓地に行く代わりに山札に戻してシャッフルされる。", testPlayEffect: "・敵に3ダメージを与える\n・墓地から好きなカードを1枚選んで手札に加える\n・この合成に使用したカードは墓地に行く代わりに山札に戻し、山札をシャッフルする", implemented: true },
-  { name: "塩化ナトリウム", formula: "NaCl", formulaDisplay: (<span>NaCl</span>), elements: {}, description: "食塩。ClとNaの追加元素が必要なレシピ。効果は今後実装予定。", implemented: false },
-  { name: "二酸化硫黄", formula: "SO2", formulaDisplay: (<span>SO<sub>2</sub></span>), elements: {}, description: "火山ガスに含まれる。Sの追加元素が必要なレシピ。", implemented: false },
-  { name: "硫酸", formula: "H2SO4", formulaDisplay: (<span>H<sub>2</sub>SO<sub>4</sub></span>), elements: {}, description: "極めて危険な強酸。Sが必要なレシピ。", implemented: false },
-  { name: "酸化銅", formula: "CuO", formulaDisplay: (<span>CuO</span>), elements: {}, description: "黒色の粉末。Cuの追加元素が必要なレシピ。", implemented: false },
-  { name: "酸化鉄", formula: "Fe2O3", formulaDisplay: (<span>Fe<sub>2</sub>O<sub>3</sub></span>), elements: {}, description: "赤サビ。Feの追加元素が必要なレシピ。", implemented: false },
+  { name: "二酸化硫黄", formula: "SO2", formulaDisplay: (<span>SO<sub>2</sub></span>), elements: { S: 1, O: 2 }, description: "火山ガスに含まれる。同じ対象に、このバトル中除外したカード枚数分のダメージを与える。", testPlayEffect: "・敵一体に対象に3ダメージを与える\n・同じ対象に、このバトル中除外したカード枚数分のダメージを与える\n・この合成で使用したS（硫黄）をこのバトル中除外する\n・この合成で使用したO（酸素）を墓地に送る代わりに山札に戻す", implemented: true },
+  { name: "三酸化硫黄", formula: "SO3", formulaDisplay: (<span>SO<sub>3</sub></span>), elements: { S: 1, O: 3 }, description: "無色の液体。同じ対象に、このバトル中除外したカード枚数分のダメージを与える。", testPlayEffect: "・敵一体に対象に5ダメージを与える\n・同じ対象に、このバトル中除外したカード枚数分のダメージを与える\n・この合成で使用したS（硫黄）をこのバトル中除外する\n・この合成で使用したO（酸素）を墓地に送る代わりに山札に戻す", implemented: true },
+  { name: "フッ化水素", formula: "HF", formulaDisplay: (<span>HF</span>), elements: { H: 1, F: 1 }, description: "バフ「回収反応」を付与し、手札をすべてリフレッシュする。", testPlayEffect: "・「バフ：回収反応」（カウント1）を自分に付与する\n・自分の手札を全て墓地に送り、墓地からランダムで5枚を選び、選ばれたカードを墓地から取り除き手札に加える", implemented: true },
+  { name: "塩化水素", formula: "HCl", formulaDisplay: (<span>HCl</span>), elements: { H: 1, Cl: 1 }, description: "刺激臭を持つ有毒な気体。手札を1枚除外し、除外されたカードの枚数だけ引く。", testPlayEffect: "・敵一体に2ダメージを与える\n・手札から好きなカードを1枚選び、このバトルから除外する\n・このバトル中に除外されたカードの枚数分、カードを引く（最大3）", implemented: true },
+  { name: "硫化水素", formula: "H2S", formulaDisplay: (<span>H<sub>2</sub>S</span>), elements: { H: 2, S: 1 }, description: "卵の腐ったような臭い。手札を除外して使い捨てのHを生成する。", testPlayEffect: "・敵一体に3ダメージを与える\n・手札から好きなカードを1枚選び、このバトルから除外する\n・手札に使い捨てのHを2枚生成する", implemented: true },
+  { name: "硫酸", formula: "H2SO4", formulaDisplay: (<span>H<sub>2</sub>SO<sub>4</sub></span>), elements: { H: 2, S: 1, O: 4 }, description: "極めて強力な強酸。除外枚数に応じて超高火力を出し、ドローを呼び込む。", testPlayEffect: "・敵一体に対象に、このバトル中除外したカード枚数の3倍のダメージを与える\n・このバトル中に除外されたカード枚数が3枚以上の場合、さらにカードを5枚引く", implemented: true },
+  { name: "亜硫酸", formula: "H2SO3", formulaDisplay: (<span>H<sub>2</sub>SO<sub>3</sub></span>), elements: { H: 2, S: 1, O: 3 }, description: "シールドを付与しつつ手札を除外し、素材は山札の上に戻る。", testPlayEffect: "・自身に4のシールドを付与する\n・手札から好きなカードを1枚選び、このバトルから除外する\n・この合成に使用したカードは墓地に行く代わりに山札の上に置く", implemented: true },
+  { name: "硫酸銅(II)", formula: "CuSO4", formulaDisplay: (<span>CuSO<sub>4</sub></span>), elements: { Cu: 1, S: 1, O: 4 }, description: "青色の美しい結晶。除外枚数と墓地の枚数に基づく大ダメージを与える。", testPlayEffect: "・敵一体に対象に、このバトル中除外したカード枚数の2倍のダメージを与える\n・同じ対象に、墓地の枚数3枚につき1ダメージを与える\n・この合成で使用したO（酸素）2枚を墓地に送る代わりに山札に戻し（シャッフル）、残りのO 2枚を手札に加える", implemented: true },
+  { name: "硫酸鉄(II)", formula: "FeSO4", formulaDisplay: (<span>FeSO<sub>4</sub></span>), elements: { Fe: 1, S: 1, O: 4 }, description: "緑色の結晶。強固なシールドを張り、そのシールド量と同値のダメージを敵に浴びせる。", testPlayEffect: "・自身に7のシールドを付与する\n・敵一体に、現在の自身のシールド数値と同じダメージを与える", implemented: true },
+  { name: "硫酸ナトリウム", formula: "Na2SO4", formulaDisplay: (<span>Na<sub>2</sub>SO<sub>4</sub></span>), elements: { Na: 2, S: 1, O: 4 }, description: "無色の結晶。回復しつつ攻撃し、除外から山札へと回収する。", testPlayEffect: "・自身の体力を5回復する\n・敵一体に6ダメージを与える\n・このバトル中に除外されたカード枚数が3枚以上の場合、除外されたカードから3枚選び山札に戻す（シャッフル）", implemented: true },
+  { name: "硫酸水素ナトリウム", formula: "NaHSO4", formulaDisplay: (<span>NaHSO<sub>4</sub></span>), elements: { Na: 1, H: 1, S: 1, O: 4 }, description: "酸性塩。回復、攻撃、除外回収、さらに手札が5枚になるまでドローする完璧なサポート。", testPlayEffect: "・自身の体力を5回復する\n・敵一体に6ダメージを与える\n・このバトル中に除外されたカード枚数が3枚以上の場合、除外されたカードから3枚選び山札に戻す（シャッフル）\n・自身の手札が5枚になるようにカードを引く", implemented: true },
+  { name: "硫酸カリウム", formula: "K2SO4", formulaDisplay: (<span>K<sub>2</sub>SO<sub>4</sub></span>), elements: { K: 2, S: 1, O: 4 }, description: "肥料としても使われる。墓地から好きなカードを除外し、その種類の使い捨てカードを山札に3枚生成する。", testPlayEffect: "・敵一体に6ダメージを与える\n・墓地から好きなカードを1枚選び、このバトルから除外する\n・選んだカードと同じ種類の使い捨てカードを3枚山札に加える（シャッフル）", implemented: true },
+  { name: "硫酸カルシウム", formula: "CaSO4", formulaDisplay: (<span>CaSO<sub>4</sub></span>), elements: { Ca: 1, S: 1, O: 4 }, description: "石膏。非常に強固なシールドを付与し、さらにシールドを持続させる。", testPlayEffect: "・自身に2のシールドを付与する\n・さらにこのバトル中除外されたカード枚数分のシールドを付与する\n・「バフ：シールド持続」（カウント3）を自分に付与する", implemented: true },
+  { name: "硝酸カリウム", formula: "KNO3", formulaDisplay: (<span>KNO<sub>3</sub></span>), elements: { K: 1, N: 1, O: 3 }, description: "黒色火薬の原料。墓地回収と酸素供給バフを同時に処理する。", testPlayEffect: "・墓地から好きなカードを1枚選び、手札に加える\n・「バフ：酸素供給」（カウント2）を自分に付与する", implemented: true },
+  { name: "炭酸ナトリウム", formula: "Na2CO3", formulaDisplay: (<span>Na<sub>2</sub>CO<sub>3</sub></span>), elements: { Na: 2, C: 1, O: 3 }, description: "ソーダ灰。自身の体力に比例して、強力な毒デバフを敵に累積させる。", testPlayEffect: "・自身の体力を5回復する\n・敵一体に「デバフ：毒」（カウント1）を付与する。この効果は自分の体力10につき1回再発動する", implemented: true },
+  { name: "炭酸水素ナトリウム", formula: "NaHCO3", formulaDisplay: (<span>NaHCO<sub>3</sub></span>), elements: { Na: 1, H: 1, C: 1, O: 3 }, description: "重曹。自身の体力に比例して、さらに高密度の毒デバフを敵に累積させる。", testPlayEffect: "・自身の体力を5回復する\n・敵一体に「デバフ：毒」（カウント1）を付与する。この効果は自分の体力5につき1回再発動する", implemented: true },
+  { name: "炭酸カルシウム", formula: "CaCO3", formulaDisplay: (<span>CaCO<sub>3</sub></span>), elements: { Ca: 1, C: 1, O: 3 }, description: "石灰石。敵に毒を与え、その毒カウント数に等しいシールドを得る。", testPlayEffect: "・敵一体に「デバフ：毒」を2回（カウント+2）付与する\n・敵の毒カウント数と同じ数値だけ自身にシールドを付与する", implemented: true },
+  { name: "次亜塩素酸", formula: "HClO", formulaDisplay: (<span>HClO</span>), elements: { H: 1, Cl: 1, O: 1 }, description: "強力な殺菌力。合成素材自身をバトルから除外し、山札に使い捨てのコピーを仕込む。", testPlayEffect: "・敵一体に2ダメージを与える\n・この合成で使用したカードをこのバトルから除外する\n・この合成で使用したカードと同じ種類の使い捨てカードを山札に加える（シャッフル）", implemented: true },
+  { name: "亜塩素酸", formula: "HClO2", formulaDisplay: (<span>HClO<sub>2</sub></span>), elements: { H: 1, Cl: 1, O: 2 }, description: "漂白剤等。合成素材自身をバトルから除外し、山札に使い捨てのコピーを仕込む。", testPlayEffect: "・敵一体に3ダメージを与える\n・この合成で使用したカードをこのバトルから除外する\n・この合成で使用したカードと同じ種類の使い捨てカードを山札に加える（シャッフル）", implemented: true },
+  { name: "塩素酸", formula: "HClO3", formulaDisplay: (<span>HClO<sub>3</sub></span>), elements: { H: 1, Cl: 1, O: 3 }, description: "強酸化剤。除外枚数の3倍のダメージを与え、4枚ドローする。", testPlayEffect: "・敵一体に対象に、このバトル中除外したカード枚数の3倍のダメージを与える\n・カードを4枚引く", implemented: true },
+  { name: "過塩素酸", formula: "HClO4", formulaDisplay: (<span>HClO<sub>4</sub></span>), elements: { H: 1, Cl: 1, O: 4 }, description: "最強クラスの強酸。除外枚数の3倍のダメージを与え、5枚ドローする。", testPlayEffect: "・敵一体に対象に、このバトル中除外したカード枚数の3倍 of ダメージを与える\n・カードを5枚引く", implemented: true },
+  { name: "酸化ナトリウム", formula: "Na2O", formulaDisplay: (<span>Na<sub>2</sub>O</span>), elements: { Na: 2, O: 1 }, description: "白い固体。シールドを張り、持続的な酸素供給を得る。", testPlayEffect: "・自身に6 of シールドを付与する\n・「バフ：酸素供給」（カウント2）を自分に付与する", implemented: true },
+  { name: "酸化カルシウム", formula: "CaO", formulaDisplay: (<span>CaO</span>), elements: { Ca: 1, O: 1 }, description: "生石灰。シールドを張り、自身のシールド量に比例した攻撃を行う。", testPlayEffect: "・自身に3 of シールドを付与する\n・敵一体に自身のシールド数値の半分（切り捨て）のダメージを与える", implemented: true },
+  { name: "酸化鉄(III)", formula: "Fe2O3", formulaDisplay: (<span>Fe<sub>2</sub>O<sub>3</sub></span>), elements: { Fe: 2, O: 3 }, description: "赤サビ。減少している体力を一気に頑強なシールドに変換し、それを敵に叩きつける。", testPlayEffect: "・自身の最大体力から現在体力を引いた値と同じ数値のシールドを自身に付与する\n・敵一体に、自身のシールド数値と同じダメージを与える", implemented: true },
+  { name: "酸化銅(I)", formula: "Cu2O", formulaDisplay: (<span>Cu<sub>2</sub>O</span>), elements: { Cu: 2, O: 1 }, description: "赤色の粉末。山札を削り、墓地のカード枚数に応じた毒を流し込む。", testPlayEffect: "・山札の上から4枚を墓地に送る\n・敵一体に、墓地の枚数3枚につき1回「デバフ：毒」（カウント+1）を付与する", implemented: true },
+  { name: "酸化銅(II)", formula: "CuO", formulaDisplay: (<span>CuO</span>), elements: { Cu: 1, O: 1 }, description: "黒色の粉末。山札を墓地へ送り、墓地から直接任意のカードを回収する。", testPlayEffect: "・山札の上から3枚を墓地に送る\n・墓地から好きなカードを1枚選び、手札に加える", implemented: true },
+  { name: "フッ化ナトリウム", formula: "NaF", formulaDisplay: (<span>NaF</span>), elements: { Na: 1, F: 1 }, description: "虫歯予防。回復し、回収反応を立ち上げ、墓地から大量のカードをドローして反応させる。", testPlayEffect: "・自身の体力を3回復する\n・「バフ：回収反応」（カウント1）を自分に付与する\n・墓地からランダムで3枚を選び、墓地から取り除き手札に加える", implemented: true },
+  { name: "フッ化カルシウム", formula: "CaF2", formulaDisplay: (<span>CaF<sub>2</sub></span>), elements: { Ca: 1, F: 2 }, description: "蛍石。シールドを張り、回収反応を立ち上げ、墓地カードをドローしてトリガーする。", testPlayEffect: "・自身に4 of シールドを付与する\n・「バフ：回収反応」（カウント1）を自分に付与する\n・墓地からランダムで3枚を選び、墓地から取り除き手札に加える", implemented: true },
+  { name: "塩化ナトリウム", formula: "NaCl", formulaDisplay: (<span>NaCl</span>), elements: { Na: 1, Cl: 1 }, description: "食塩。体力を回復させ、不要な手札1枚を除外に送る。", testPlayEffect: "・自身の体力を3回復する\n・手札から好きなカードを1枚選び、このバトルから除外する", implemented: true },
+  { name: "塩化カルシウム", formula: "CaCl2", formulaDisplay: (<span>CaCl<sub>2</sub></span>), elements: { Ca: 1, Cl: 2 }, description: "融雪剤。シールドを張りつつ、不要な手札1枚を除外に送る。", testPlayEffect: "・自身に8 of シールドを付与する\n・手札から好きなカードを1枚選び、このバトルから除外する", implemented: true },
+  { name: "塩化アンモニウム", formula: "NH4Cl", formulaDisplay: (<span>NH<sub>4</sub>Cl</span>), elements: { N: 1, H: 4, Cl: 1 }, description: "除外されたカードのパワーで攻撃し、除外カード4枚を再び手札に呼び戻す。", testPlayEffect: "・敵一体に、このバトル中除外したカード枚数の2倍のダメージを与える\n・このバトル中に除外されたカードから4枚選び、それらを除外から取り除き手札に加える", implemented: true },
+  { name: "塩化カリウム", formula: "KCl", formulaDisplay: (<span>KCl</span>), elements: { K: 1, Cl: 1 }, description: "除外された世界から好きなカードを1枚手札に戻し、酸素供給を開始する。", testPlayEffect: "・除外されたカードから好きなカードを1枚選び、除外から取り除き手札に加える\n・「バフ：酸素供給」（カウント2）を自分に付与する", implemented: true },
+  { name: "硫化銅(I)", formula: "Cu2S", formulaDisplay: (<span>Cu<sub>2</sub>S</span>), elements: { Cu: 2, S: 1 }, description: "効果未定。今後のアップデートをお楽しみに。", implemented: false },
+  { name: "硫化鉄(II)", formula: "FeS", formulaDisplay: (<span>FeS</span>), elements: { Fe: 1, S: 1 }, description: "効果未定。今後のアップデートをお楽しみに。", implemented: false },
+  { name: "硫化ナトリウム", formula: "Na2S", formulaDisplay: (<span>Na<sub>2</sub>S</span>), elements: { Na: 2, S: 1 }, description: "除外枚数に応じたダメージを与え、体力を4回復する。", testPlayEffect: "・敵一体に、このバトル中除外したカード枚数分のダメージを与える\n・自身の体力を4回復する", implemented: true },
+  { name: "硫化カルシウム", formula: "CaS", formulaDisplay: (<span>CaS</span>), elements: { Ca: 1, S: 1 }, description: "除外枚数に応じたダメージを与え、4のシールドを得る。", testPlayEffect: "・敵一体に、このバトル中除外したカード枚数分のダメージを与える\n・自身に4 of シールドを付与する", implemented: true },
+  { name: "水酸化ナトリウム", formula: "NaOH", formulaDisplay: (<span>NaOH</span>), elements: { Na: 1, O: 1, H: 1 }, description: "苛性ソーダ。少し回復し、カードを3枚一気に引き込む。", testPlayEffect: "・自身の体力を1回復する\n・カードを3枚引く", implemented: true },
+  { name: "水酸化カリウム", formula: "KOH", formulaDisplay: (<span>KOH</span>), elements: { K: 1, O: 1, H: 1 }, description: "苛性カリ。酸素供給を有効化し、カードを2枚引く。", testPlayEffect: "・「バフ：酸素供給」（カウント2）を自分に付与する\n・カードを2枚引く", implemented: true },
+  { name: "水酸化鉄", formula: "Fe(OH)3", formulaDisplay: (<span>Fe(OH)<sub>3</sub></span>), elements: { Fe: 1, O: 3, H: 3 }, description: "手札上限拡張が必要な大技。自身のシールド値のダメージを浴びせ、手札が上限に満ちるまで一気に引ききる。", testPlayEffect: "・敵一体に、現在の自身のシールド数値と同じダメージを与える\n・カードを手札上限まで引く", implemented: true },
 ];
 
 // 初期デッキ定義 (H:6, O:6, C:4, N:4)
@@ -308,12 +406,13 @@ const INITIAL_DECK_TYPES: ElementType[] = [
 ];
 
 // カード生成用ユニークID付きヘルパー
-const createCard = (type: ElementType): ElementCard => {
+const createCard = (type: ElementType, disposable?: boolean): ElementCard => {
   const def = ELEMENT_DEFS[type];
   return {
     id: `card-${Math.random().toString(36).substr(2, 9)}`,
     type,
-    ...def
+    ...def,
+    disposable
   };
 };
 
@@ -509,6 +608,17 @@ export default function App() {
   const [showGraveSalvage, setShowGraveSalvage] = useState<boolean>(false);
   const [salvageCount, setSalvageCount] = useState<number>(0);
   const [tempEffectZone, setTempEffectZone] = useState<ElementCard[]>([]);
+
+  // 除外されたカードの管理
+  const [exiledCards, setExiledCards] = useState<ElementCard[]>([]);
+
+  // 汎用カード手動選択モーダルの状態
+  const [showSelectionModal, setShowSelectionModal] = useState<boolean>(false);
+  const [selectionModalTitle, setSelectionModalTitle] = useState<string>("");
+  const [selectionModalPool, setSelectionModalPool] = useState<ElementCard[]>([]);
+  const [selectionMinMax, setSelectionMinMax] = useState<{ min: number; max: number }>({ min: 1, max: 1 });
+  const [selectionSelectedIds, setSelectionSelectedIds] = useState<string[]>([]);
+  const [selectionCallback, setSelectionCallback] = useState<((selectedCards: ElementCard[]) => null | void) | null>(null);
   const [activeSynthesizedCompound, setActiveSynthesizedCompound] = useState<string | null>(null);
 
   // 非同期の setTimeout コールバック内などで最新のカードデータを参照するための refs
@@ -609,6 +719,7 @@ export default function App() {
     setGrave([]);
     setHand([]);
     setSelectedCardIds([]);
+    setExiledCards([]);
     
     // ターン数初期化
     setTurn(1);
@@ -684,25 +795,167 @@ export default function App() {
     }
   };
 
-  const cleanupAfterSalvage = (currentTempZone: ElementCard[], overrideCompoundName?: string | null) => {
-    const activeCompound = overrideCompoundName !== undefined ? overrideCompoundName : activeSynthesizedCompound;
-    if (currentTempZone.length > 0) {
-      if (activeCompound === "亜硝酸") {
+  // 合成に使用された素材のクリーンアップ統合関数
+  const cleanupMaterials = (materials: ElementCard[], compoundName: string) => {
+    // 1. 使い捨て（disposable: true）を最優先で除外
+    const disposables = materials.filter(c => c.disposable);
+    const nonDisposables = materials.filter(c => !c.disposable);
+
+    if (disposables.length > 0) {
+      setExiledCards(prev => [...prev, ...disposables]);
+      addLog(`【使い捨て】 ${disposables.map(c => c.name).join("、")} は使い捨てのため、バトルから除外されました！`);
+    }
+
+    if (nonDisposables.length === 0) return;
+
+    // 2. 化合物ごとの特別な還流・除外効果の処理
+    switch (compoundName) {
+      case "亜硝酸": {
         // 山札に戻してシャッフル
         setDeck(prevDeck => {
-          let updatedDeck = [...prevDeck, ...currentTempZone];
-          // シャッフル
+          let updatedDeck = [...prevDeck, ...nonDisposables];
           for (let i = updatedDeck.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [updatedDeck[i], updatedDeck[j]] = [updatedDeck[j], updatedDeck[i]];
           }
           return updatedDeck;
         });
-        addLog(`【亜硝酸の効果】合成に使用した素材カード ${currentTempZone.length} 枚をすべて山札に戻し、シャッフルしました。`);
-      } else {
-        // 墓地に送る
-        setGrave(prevGrave => [...prevGrave, ...currentTempZone]);
+        addLog(`【亜硝酸】合成素材 ${nonDisposables.map(c => c.name).join("、")} は山札に戻り、シャッフルされました。`);
+        break;
       }
+      case "亜硫酸": {
+        // 山札の上に乗せる（シャッフルしない）
+        setDeck(prevDeck => [...prevDeck, ...nonDisposables]);
+        addLog(`【亜硫酸】合成素材 ${nonDisposables.map(c => c.name).join("、")} は山札の上に戻りました。`);
+        break;
+      }
+      case "二酸化硫黄":
+      case "三酸化硫黄": {
+        // Sはバトル中除外。Oは山札に戻してシャッフル。
+        const sCards = nonDisposables.filter(c => c.type === "S");
+        const oCards = nonDisposables.filter(c => c.type === "O");
+        const otherCards = nonDisposables.filter(c => c.type !== "S" && c.type !== "O");
+
+        if (sCards.length > 0) {
+          setExiledCards(prev => [...prev, ...sCards]);
+          addLog(`【${compoundName}】素材のS（硫黄） ${sCards.length} 枚は除外されました。`);
+        }
+        if (oCards.length > 0) {
+          setDeck(prevDeck => {
+            let updatedDeck = [...prevDeck, ...oCards];
+            for (let i = updatedDeck.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [updatedDeck[i], updatedDeck[j]] = [updatedDeck[j], updatedDeck[i]];
+            }
+            return updatedDeck;
+          });
+          addLog(`【${compoundName}】素材のO（酸素） ${oCards.length} 枚は山札に戻り、シャッフルされました。`);
+        }
+        if (otherCards.length > 0) {
+          setGrave(prevGrave => [...prevGrave, ...otherCards]);
+        }
+        break;
+      }
+      case "硫酸銅(II)": {
+        // O 2枚を山札に戻してシャッフル、残りのO 2枚を手札に加える
+        const oCards = nonDisposables.filter(c => c.type === "O");
+        const otherCards = nonDisposables.filter(c => c.type !== "O");
+
+        const oToDeck = oCards.slice(0, 2);
+        const oToHand = oCards.slice(2);
+
+        if (oToDeck.length > 0) {
+          setDeck(prevDeck => {
+            let updatedDeck = [...prevDeck, ...oToDeck];
+            for (let i = updatedDeck.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [updatedDeck[i], updatedDeck[j]] = [updatedDeck[j], updatedDeck[i]];
+            }
+            return updatedDeck;
+          });
+          addLog(`【硫酸銅(II)】O（酸素） ${oToDeck.length} 枚が山札に戻り、シャッフルされました。`);
+        }
+        if (oToHand.length > 0) {
+          setHand(prevHand => [...prevHand, ...oToHand]);
+          addLog(`【硫酸銅(II)】O（酸素） ${oToHand.length} 枚が手札に戻りました。`);
+        }
+        if (otherCards.length > 0) {
+          setGrave(prevGrave => [...prevGrave, ...otherCards]);
+        }
+        break;
+      }
+      case "次亜塩素酸":
+      case "亜塩素酸": {
+        // 合成素材自身をすべてバトルから除外し、その種類の使い捨てコピーを1枚山札に加えてシャッフル
+        setExiledCards(prev => [...prev, ...nonDisposables]);
+        addLog(`【${compoundName}】合成素材はすべて除外されました。`);
+
+        const uniqueTypes = Array.from(new Set(nonDisposables.map(c => c.type)));
+        setDeck(prevDeck => {
+          let updatedDeck = [...prevDeck, ...uniqueTypes.map(t => createCard(t, true))];
+          for (let i = updatedDeck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [updatedDeck[i], updatedDeck[j]] = [updatedDeck[j], updatedDeck[i]];
+          }
+          return updatedDeck;
+        });
+        addLog(`【${compoundName}】効果により、使い捨ての ${uniqueTypes.join(", ")} が山札にシャッフル追加されました。`);
+        break;
+      }
+      default: {
+        // 通常の墓地送り
+        setGrave(prevGrave => [...prevGrave, ...nonDisposables]);
+        break;
+      }
+    }
+  };
+
+  const openSelectionModal = (
+    title: string,
+    pool: ElementCard[],
+    min: number,
+    max: number,
+    callback: (selectedCards: ElementCard[]) => null | void
+  ) => {
+    setSelectionModalTitle(title);
+    setSelectionModalPool(pool);
+    setSelectionMinMax({ min, max });
+    setSelectionSelectedIds([]);
+    setSelectionCallback(() => callback);
+    setShowSelectionModal(true);
+  };
+
+  const toggleSelectionModalCard = (cardId: string) => {
+    setSelectionSelectedIds(prev => {
+      if (prev.includes(cardId)) {
+        return prev.filter(id => id !== cardId);
+      }
+      if (prev.length >= selectionMinMax.max) {
+        if (selectionMinMax.max === 1) {
+          return [cardId];
+        }
+        return prev;
+      }
+      return [...prev, cardId];
+    });
+  };
+
+  const handleConfirmSelectionModal = () => {
+    if (selectionSelectedIds.length < selectionMinMax.min) {
+      addLog(`最低でも ${selectionMinMax.min} 枚カードを選択してください。`);
+      return;
+    }
+    const selected = selectionModalPool.filter(c => selectionSelectedIds.includes(c.id));
+    setShowSelectionModal(false);
+    if (selectionCallback) {
+      selectionCallback(selected);
+    }
+  };
+
+  const cleanupAfterSalvage = (currentTempZone: ElementCard[], overrideCompoundName?: string | null) => {
+    const activeCompound = overrideCompoundName !== undefined ? overrideCompoundName : activeSynthesizedCompound;
+    if (currentTempZone.length > 0 && activeCompound) {
+      cleanupMaterials(currentTempZone, activeCompound);
     }
     setTempEffectZone([]);
     setActiveSynthesizedCompound(null);
@@ -813,6 +1066,18 @@ export default function App() {
     let updatedHand = remainingHand;
     let updatedDeck = [...deck];
     let updatedGrave = [...grave];
+
+    // 回収反応バフ発動チェック
+    const hasRecoveryReaction = nextPlayer.debuffs.some(b => b.name === "回収反応" && b.count > 0);
+    if (hasRecoveryReaction) {
+      if (updatedGrave.length > 0) {
+        const randIdx = Math.floor(Math.random() * updatedGrave.length);
+        const salvagedCard = updatedGrave[randIdx];
+        updatedGrave = updatedGrave.filter((_, idx) => idx !== randIdx);
+        updatedHand = [...updatedHand, salvagedCard];
+        addLog(`【回収反応】効果発動！墓地からランダムに ${salvagedCard.name} を手札に加えました。`);
+      }
+    }
 
     // 各化合物の具体的な効果処理
     switch (matchedCompound.name) {
@@ -1078,6 +1343,740 @@ export default function App() {
         compoundLog = `「亜硝酸」の効果：敵に ${dmg} ダメージを与えた。さらに墓地から好きなカードを1枚回収し、この合成に使用したカードは墓地に行く代わりに山札に戻してシャッフルする。`;
         break;
       }
+      case "二酸化硫黄": {
+        let dmg = 3 + exiledCards.length;
+        if (isPlayerFeared) {
+          dmg = Math.floor(dmg / 2);
+        }
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+        compoundLog = `「二酸化硫黄」の効果：敵に ${dmg} ダメージ（3 ＋ 除外枚数 ${exiledCards.length}）を与えた。`;
+        break;
+      }
+      case "三酸化硫黄": {
+        let dmg = 5 + exiledCards.length;
+        if (isPlayerFeared) {
+          dmg = Math.floor(dmg / 2);
+        }
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+        compoundLog = `「三酸化硫黄」の効果：敵に ${dmg} ダメージ（5 ＋ 除外枚数 ${exiledCards.length}）を与えた。`;
+        break;
+      }
+      case "フッ化水素": {
+        const existingRec = nextPlayer.debuffs.find(b => b.name === "回収反応");
+        if (existingRec) {
+          existingRec.count += 1;
+        } else {
+          nextPlayer.debuffs.push({ name: "回収反応", count: 1, description: "合成時に墓地からランダムで1枚手札に戻す。" });
+        }
+        
+        let tempGrave = [...updatedGrave, ...updatedHand];
+        let tempHand: ElementCard[] = [];
+        let actualDraw = Math.min(5, tempGrave.length);
+        for (let i = 0; i < actualDraw; i++) {
+          const randIdx = Math.floor(Math.random() * tempGrave.length);
+          tempHand.push(tempGrave[randIdx]);
+          tempGrave = tempGrave.filter((_, idx) => idx !== randIdx);
+        }
+        updatedHand = tempHand;
+        updatedGrave = tempGrave;
+        compoundLog = `「フッ化水素」の効果：自身に回収反応を付与し、手札をすべて墓地送りにしてから、墓地のカードからランダムで ${actualDraw} 枚手札に加えました。`;
+        break;
+      }
+      case "塩化水素": {
+        let dmg = 2;
+        if (isPlayerFeared) dmg = 1;
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+
+        triggerGraveSalvage = true;
+        setTimeout(() => {
+          openSelectionModal(
+            "除外する手札を1枚選んでください（塩化水素）",
+            updatedHand,
+            1,
+            1,
+            (selected) => {
+              if (selected.length > 0) {
+                const target = selected[0];
+                setHand(prev => {
+                  const nextHand = prev.filter(c => c.id !== target.id);
+                  setExiledCards(prevExile => {
+                    const nextExile = [...prevExile, target];
+                    const drawNum = Math.min(3, nextExile.length);
+                    drawCards(deckRef.current, [], graveRef.current, drawNum);
+                    return nextExile;
+                  });
+                  return nextHand;
+                });
+                addLog(`【塩化水素】 ${target.name} を手札から除外し、除外カード数に応じたドローを行いました。`);
+              }
+              cleanupMaterials(usedCards, "塩化水素");
+            }
+          );
+        }, 100);
+        compoundLog = `「塩化水素」の効果：敵に ${dmg} ダメージを与え、手札除外からドローに繋げる連鎖を起動。`;
+        break;
+      }
+      case "硫化水素": {
+        let dmg = 3;
+        if (isPlayerFeared) dmg = 1;
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+
+        triggerGraveSalvage = true;
+        setTimeout(() => {
+          openSelectionModal(
+            "除外する手札を1枚選んでください（硫化水素）",
+            updatedHand,
+            1,
+            1,
+            (selected) => {
+              if (selected.length > 0) {
+                const target = selected[0];
+                setHand(prev => {
+                  const nextHand = prev.filter(c => c.id !== target.id);
+                  setExiledCards(prevExile => [...prevExile, target]);
+                  const disposableH1 = createCard("H", true);
+                  const disposableH2 = createCard("H", true);
+                  return [...nextHand, disposableH1, disposableH2];
+                });
+                addLog(`【硫化水素】 ${target.name} を手札から除外し、使い捨てのHを2枚手札に生成しました。`);
+              }
+              cleanupMaterials(usedCards, "硫化水素");
+            }
+          );
+        }, 100);
+        compoundLog = `「硫化水素」の効果：敵に ${dmg} ダメージを与え、手札の不要カードを使い捨てHへ錬成。`;
+        break;
+      }
+      case "硫酸": {
+        let dmg = exiledCards.length * 3;
+        if (isPlayerFeared) {
+          dmg = Math.floor(dmg / 2);
+        }
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+
+        if (exiledCards.length >= 3) {
+          drawCountAfter = 5;
+        }
+        compoundLog = `「硫酸」の効果：敵に除外数×3の ${dmg} ダメージを与えた。${exiledCards.length >= 3 ? "さらにカードを 5 枚引きます！" : ""}`;
+        break;
+      }
+      case "亜硫酸": {
+        nextPlayer.shield += 4;
+        triggerGraveSalvage = true;
+        setTimeout(() => {
+          openSelectionModal(
+            "除外する手札を1枚選んでください（亜硫酸）",
+            updatedHand,
+            1,
+            1,
+            (selected) => {
+              if (selected.length > 0) {
+                const target = selected[0];
+                setHand(prev => prev.filter(c => c.id !== target.id));
+                setExiledCards(prevExile => [...prevExile, target]);
+                addLog(`【亜硫酸】 ${target.name} を手札から除外しました。`);
+              }
+              cleanupMaterials(usedCards, "亜硫酸");
+            }
+          );
+        }, 100);
+        compoundLog = `「亜硫酸」の効果：自分に 4 シールドを付与し、素材カードを山札の上に還流させる。`;
+        break;
+      }
+      case "硫酸銅(II)": {
+        const graveDamage = Math.floor(updatedGrave.length / 3);
+        let dmg = (exiledCards.length * 2) + graveDamage;
+        if (isPlayerFeared) {
+          dmg = Math.floor(dmg / 2);
+        }
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+
+        compoundLog = `「硫酸銅(II)」の効果：敵に ${dmg} ダメージ（除外数×2 ＋ 墓地3枚につき1）を与えた。`;
+        break;
+      }
+      case "硫酸鉄(II)": {
+        nextPlayer.shield += 7;
+        let dmg = nextPlayer.shield;
+        if (isPlayerFeared) {
+          dmg = Math.floor(dmg / 2);
+        }
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+        compoundLog = `「硫酸鉄(II)」の効果：自身に 7 のシールドを展開し、その総量と同じ ${dmg} ダメージを敵に叩き込んだ！`;
+        break;
+      }
+      case "硫酸ナトリウム": {
+        nextPlayer.hp = Math.min(nextPlayer.maxHp, nextPlayer.hp + 5);
+        let dmg = 6;
+        if (isPlayerFeared) dmg = 3;
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+
+        if (exiledCards.length >= 3) {
+          triggerGraveSalvage = true;
+          setTimeout(() => {
+            openSelectionModal(
+              "山札に戻す除外カードを3枚まで選んでください",
+              exiledCards,
+              1,
+              3,
+              (selected) => {
+                if (selected.length > 0) {
+                  const selectedIds = selected.map(s => s.id);
+                  setExiledCards(prev => prev.filter(c => !selectedIds.includes(c.id)));
+                  setDeck(prevDeck => {
+                    let updatedDeck = [...prevDeck, ...selected];
+                    for (let i = updatedDeck.length - 1; i > 0; i--) {
+                      const j = Math.floor(Math.random() * (i + 1));
+                      [updatedDeck[i], updatedDeck[j]] = [updatedDeck[j], updatedDeck[i]];
+                    }
+                    return updatedDeck;
+                  });
+                  addLog(`【硫酸ナトリウム】除外から ${selected.map(c => c.name).join("、")} を山札に戻してシャッフルしました。`);
+                }
+                cleanupMaterials(usedCards, "硫酸ナトリウム");
+              }
+            );
+          }, 100);
+        }
+        compoundLog = `「硫酸ナトリウム」の効果：体力を 5 回復し、敵に ${dmg} ダメージを与えた。`;
+        break;
+      }
+      case "硫酸水素ナトリウム": {
+        nextPlayer.hp = Math.min(nextPlayer.maxHp, nextPlayer.hp + 5);
+        let dmg = 6;
+        if (isPlayerFeared) dmg = 3;
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+
+        const handleHandFill = (currentHandSize: number) => {
+          const drawCount = Math.max(0, 5 - currentHandSize);
+          if (drawCount > 0) {
+            drawCards(deckRef.current, [], graveRef.current, drawCount);
+          }
+        };
+
+        if (exiledCards.length >= 3) {
+          triggerGraveSalvage = true;
+          setTimeout(() => {
+            openSelectionModal(
+              "山札に戻す除外カードを3枚まで選んでください",
+              exiledCards,
+              1,
+              3,
+              (selected) => {
+                let handSizeAfter = updatedHand.length;
+                if (selected.length > 0) {
+                  const selectedIds = selected.map(s => s.id);
+                  setExiledCards(prev => prev.filter(c => !selectedIds.includes(c.id)));
+                  setDeck(prevDeck => {
+                    let updatedDeck = [...prevDeck, ...selected];
+                    for (let i = updatedDeck.length - 1; i > 0; i--) {
+                      const j = Math.floor(Math.random() * (i + 1));
+                      [updatedDeck[i], updatedDeck[j]] = [updatedDeck[j], updatedDeck[i]];
+                    }
+                    return updatedDeck;
+                  });
+                  addLog(`【硫酸水素ナトリウム】除外から ${selected.map(c => c.name).join("、")} を山札に戻してシャッフルしました。`);
+                }
+                cleanupMaterials(usedCards, "硫酸水素ナトリウム");
+                handleHandFill(handSizeAfter);
+              }
+            );
+          }, 100);
+        } else {
+          drawCountAfter = Math.max(0, 5 - updatedHand.length);
+        }
+        compoundLog = `「硫酸水素ナトリウム」の効果：体力を 5 回復し、敵に ${dmg} ダメージを与えた。`;
+        break;
+      }
+      case "硫酸カリウム": {
+        let dmg = 6;
+        if (isPlayerFeared) dmg = 3;
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+
+        if (updatedGrave.length > 0) {
+          triggerGraveSalvage = true;
+          setTimeout(() => {
+            openSelectionModal(
+              "除外する墓地のカードを1枚選んでください",
+              updatedGrave,
+              1,
+              1,
+              (selected) => {
+                if (selected.length > 0) {
+                  const target = selected[0];
+                  setGrave(prev => prev.filter(c => c.id !== target.id));
+                  setExiledCards(prevExile => [...prevExile, target]);
+
+                  setDeck(prevDeck => {
+                    let updatedDeck = [...prevDeck, createCard(target.type, true), createCard(target.type, true), createCard(target.type, true)];
+                    for (let i = updatedDeck.length - 1; i > 0; i--) {
+                      const j = Math.floor(Math.random() * (i + 1));
+                      [updatedDeck[i], updatedDeck[j]] = [updatedDeck[j], updatedDeck[i]];
+                    }
+                    return updatedDeck;
+                  });
+                  addLog(`【硫酸カリウム】墓地の ${target.name} を除外し、使い捨てコピー3枚を山札にシャッフル追加しました！`);
+                }
+                cleanupMaterials(usedCards, "硫酸カリウム");
+              }
+            );
+          }, 100);
+        }
+        compoundLog = `「硫酸カリウム」の効果：敵に ${dmg} ダメージを与えた。`;
+        break;
+      }
+      case "硫酸カルシウム": {
+        const shieldVal = 2 + exiledCards.length;
+        nextPlayer.shield += shieldVal;
+
+        const existingKeep = nextPlayer.debuffs.find(b => b.name === "シールド持続");
+        if (existingKeep) {
+          existingKeep.count += 3;
+        } else {
+          nextPlayer.debuffs.push({ name: "シールド持続", count: 3, description: "プレイヤーターン開始時のシールドリセットをスキップする。" });
+        }
+        compoundLog = `「硫酸カルシウム」の効果：自分に ${shieldVal} シールドを張り、バフ「シールド持続（3ターン）」を付与した。`;
+        break;
+      }
+      case "硝酸カリウム": {
+        const existingOxy = nextPlayer.debuffs.find(b => b.name === "酸素供給");
+        if (existingOxy) {
+          existingOxy.count += 2;
+        } else {
+          nextPlayer.debuffs.push({ name: "酸素供給", count: 2, description: "ターン開始時、使い捨て of Oカードを手札に1枚生成する。" });
+        }
+
+        if (updatedGrave.length > 0) {
+          triggerGraveSalvage = true;
+          setTimeout(() => {
+            openSelectionModal(
+              "手札に回収する墓地のカードを1枚選んでください",
+              updatedGrave,
+              1,
+              1,
+              (selected) => {
+                if (selected.length > 0) {
+                  const target = selected[0];
+                  setGrave(prev => prev.filter(c => c.id !== target.id));
+                  setHand(prev => [...prev, target]);
+                  addLog(`【硝酸カリウム】墓地から ${target.name} を手札に戻しました。`);
+                }
+                cleanupMaterials(usedCards, "硝酸カリウム");
+              }
+            );
+          }, 100);
+        }
+        compoundLog = `「硝酸カリウム」の効果：バフ「酸素供給（2ターン）」を付与。`;
+        break;
+      }
+      case "炭酸ナトリウム": {
+        nextPlayer.hp = Math.min(nextPlayer.maxHp, nextPlayer.hp + 5);
+        const repeatCount = Math.floor(nextPlayer.hp / 10);
+        if (repeatCount > 0) {
+          const existingPoison = nextEnemy.debuffs.find(d => d.name === "毒");
+          if (existingPoison) {
+            existingPoison.count += repeatCount;
+          } else {
+            nextEnemy.debuffs.push({ name: "毒", count: repeatCount, description: "相手のターン終了時、このカウント数だけのダメージを受ける。" });
+          }
+        }
+        compoundLog = `「炭酸ナトリウム」の効果：体力を 5 回復し、敵に「毒デバフ（カウント${repeatCount}）」を付与した。`;
+        break;
+      }
+      case "炭酸水素ナトリウム": {
+        nextPlayer.hp = Math.min(nextPlayer.maxHp, nextPlayer.hp + 5);
+        const repeatCount = Math.floor(nextPlayer.hp / 5);
+        if (repeatCount > 0) {
+          const existingPoison = nextEnemy.debuffs.find(d => d.name === "毒");
+          if (existingPoison) {
+            existingPoison.count += repeatCount;
+          } else {
+            nextEnemy.debuffs.push({ name: "毒", count: repeatCount, description: "相手のターン終了時、このカウント数だけのダメージを受ける。" });
+          }
+        }
+        compoundLog = `「炭酸水素ナトリウム」の効果：体力を 5 回復し、敵に「毒デバフ（カウント${repeatCount}）」を付与した。`;
+        break;
+      }
+      case "炭酸カルシウム": {
+        const existingPoison = nextEnemy.debuffs.find(d => d.name === "毒");
+        let currentPoison = 2;
+        if (existingPoison) {
+          existingPoison.count += 2;
+          currentPoison = existingPoison.count;
+        } else {
+          nextEnemy.debuffs.push({ name: "毒", count: 2, description: "相手のターン終了時、このカウント数だけのダメージを受ける。" });
+        }
+        nextPlayer.shield += currentPoison;
+        compoundLog = `「炭酸カルシウム」の効果：敵に毒を2回付与し、敵の合計毒カウントと同じ ${currentPoison} のシールドを獲得した！`;
+        break;
+      }
+      case "次亜塩素酸": {
+        let dmg = 2;
+        if (isPlayerFeared) dmg = 1;
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+        compoundLog = `「次亜塩素酸」の効果：敵に ${dmg} ダメージを与えた。`;
+        break;
+      }
+      case "亜塩素酸": {
+        let dmg = 3;
+        if (isPlayerFeared) dmg = 1;
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+        compoundLog = `「亜塩素酸」の効果：敵に ${dmg} ダメージを与えた。`;
+        break;
+      }
+      case "塩素酸": {
+        let dmg = exiledCards.length * 3;
+        if (isPlayerFeared) {
+          dmg = Math.floor(dmg / 2);
+        }
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+        drawCountAfter = 4;
+        compoundLog = `「塩素酸」の効果：敵に除外枚数×3の ${dmg} ダメージを与え、カードを 4 枚引いた。`;
+        break;
+      }
+      case "過塩素酸": {
+        let dmg = exiledCards.length * 3;
+        if (isPlayerFeared) {
+          dmg = Math.floor(dmg / 2);
+        }
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+        drawCountAfter = 5;
+        compoundLog = `「過塩素酸」の効果：敵に除外枚数×3の ${dmg} ダメージを与え、カードを 5 枚引いた！`;
+        break;
+      }
+      case "酸化ナトリウム": {
+        nextPlayer.shield += 6;
+        const existingOxy = nextPlayer.debuffs.find(b => b.name === "酸素供給");
+        if (existingOxy) {
+          existingOxy.count += 2;
+        } else {
+          nextPlayer.debuffs.push({ name: "酸素供給", count: 2, description: "ターン開始時、使い捨てのOカードを手札に1枚生成する。" });
+        }
+        compoundLog = `「酸化ナトリウム」の効果：自分に 6 のシールドを展開し、バフ「酸素供給（2ターン）」を獲得した。`;
+        break;
+      }
+      case "酸化カルシウム": {
+        nextPlayer.shield += 3;
+        let dmg = Math.floor(nextPlayer.shield / 2);
+        if (isPlayerFeared) {
+          dmg = Math.floor(dmg / 2);
+        }
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+        compoundLog = `「酸化カルシウム」の効果：自分に 3 シールドを付与し、現在のシールド数値の半分となる ${dmg} ダメージを敵にを与えた。`;
+        break;
+      }
+      case "酸化鉄(III)": {
+        const hpLoss = Math.max(0, nextPlayer.maxHp - nextPlayer.hp);
+        nextPlayer.shield += hpLoss;
+        let dmg = nextPlayer.shield;
+        if (isPlayerFeared) {
+          dmg = Math.floor(dmg / 2);
+        }
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+        compoundLog = `「酸化鉄(III)」の効果：減少HP分の ${hpLoss} シールドを自身に張り、そのシールド値と同じ ${dmg} ダメージを敵に浴びせた！`;
+        break;
+      }
+      case "酸化銅(I)": {
+        let tempDeck = [...updatedDeck];
+        let tempGrave = [...updatedGrave];
+        const cardsToMill = 4;
+        for (let i = 0; i < cardsToMill; i++) {
+          const milledCard = tempDeck.pop();
+          if (milledCard) {
+            tempGrave.push(milledCard);
+          }
+        }
+        updatedDeck = tempDeck;
+        updatedGrave = tempGrave;
+        addLog(`【山札墓地送り】山札の上から ${cardsToMill} 枚のカードが墓地へと送られました。`);
+
+        const poisonAdded = Math.floor(updatedGrave.length / 3);
+        if (poisonAdded > 0) {
+          const existingPoison = nextEnemy.debuffs.find(d => d.name === "毒");
+          if (existingPoison) {
+            existingPoison.count += poisonAdded;
+          } else {
+            nextEnemy.debuffs.push({ name: "毒", count: poisonAdded, description: "相手のターン終了時、このカウント数だけのダメージを受ける。" });
+          }
+        }
+        compoundLog = `「酸化銅(I)」の効果：墓地の枚数に基づき、敵に毒デバフ（カウント${poisonAdded}）を蓄積した。`;
+        break;
+      }
+      case "酸化銅(II)": {
+        let tempDeck = [...updatedDeck];
+        let tempGrave = [...updatedGrave];
+        const cardsToMill = 3;
+        for (let i = 0; i < cardsToMill; i++) {
+          const milledCard = tempDeck.pop();
+          if (milledCard) {
+            tempGrave.push(milledCard);
+          }
+        }
+        updatedDeck = tempDeck;
+        updatedGrave = tempGrave;
+        addLog(`【山札墓地送り】山札の上から ${cardsToMill} 枚のカードが墓地へと送られました。`);
+
+        if (updatedGrave.length > 0) {
+          triggerGraveSalvage = true;
+          setTimeout(() => {
+            openSelectionModal(
+              "手札に回収する墓地のカードを1枚選んでください（酸化銅(II)）",
+              updatedGrave,
+              1,
+              1,
+              (selected) => {
+                if (selected.length > 0) {
+                  const target = selected[0];
+                  setGrave(prev => prev.filter(c => c.id !== target.id));
+                  setHand(prev => [...prev, target]);
+                  addLog(`【酸化銅(II)】墓地から ${target.name} を手札に戻しました。`);
+                }
+                cleanupMaterials(usedCards, "酸化銅(II)");
+              }
+            );
+          }, 100);
+        }
+        compoundLog = `「酸化銅(II)」の効果：山札を削り、欲しいカードの墓地サルベージを開始。`;
+        break;
+      }
+      case "フッ化ナトリウム": {
+        nextPlayer.hp = Math.min(nextPlayer.maxHp, nextPlayer.hp + 3);
+        const existingRec = nextPlayer.debuffs.find(b => b.name === "回収反応");
+        if (existingRec) {
+          existingRec.count += 1;
+        } else {
+          nextPlayer.debuffs.push({ name: "回収反応", count: 1, description: "合成時に墓地からランダムで1枚手札に戻す。" });
+        }
+
+        let tempGrave = [...updatedGrave];
+        let tempHand = [...updatedHand];
+        let actualDrawn = Math.min(3, tempGrave.length);
+        for (let i = 0; i < actualDrawn; i++) {
+          const randIdx = Math.floor(Math.random() * tempGrave.length);
+          tempHand.push(tempGrave[randIdx]);
+          tempGrave = tempGrave.filter((_, idx) => idx !== randIdx);
+        }
+        updatedHand = tempHand;
+        updatedGrave = tempGrave;
+        compoundLog = `「フッ化ナトリウム」の効果：体力を 3 回復し、回収反応を付与。墓地からランダムで ${actualDrawn} 枚カードを回収した。`;
+        break;
+      }
+      case "フッ化カルシウム": {
+        nextPlayer.shield += 4;
+        const existingRec = nextPlayer.debuffs.find(b => b.name === "回収反応");
+        if (existingRec) {
+          existingRec.count += 1;
+        } else {
+          nextPlayer.debuffs.push({ name: "回収反応", count: 1, description: "合成時に墓地からランダムで1枚手札に戻す。" });
+        }
+
+        let tempGrave = [...updatedGrave];
+        let tempHand = [...updatedHand];
+        let actualDrawn = Math.min(3, tempGrave.length);
+        for (let i = 0; i < actualDrawn; i++) {
+          const randIdx = Math.floor(Math.random() * tempGrave.length);
+          tempHand.push(tempGrave[randIdx]);
+          tempGrave = tempGrave.filter((_, idx) => idx !== randIdx);
+        }
+        updatedHand = tempHand;
+        updatedGrave = tempGrave;
+        compoundLog = `「フッ化カルシウム」の効果：シールドを 4 獲得し、回収反応を付与。墓地からランダムで ${actualDrawn} 枚カードを回収した。`;
+        break;
+      }
+      case "塩化ナトリウム": {
+        nextPlayer.hp = Math.min(nextPlayer.maxHp, nextPlayer.hp + 3);
+        triggerGraveSalvage = true;
+        setTimeout(() => {
+          openSelectionModal(
+            "除外する手札を1枚選んでください（塩化ナトリウム）",
+            updatedHand,
+            1,
+            1,
+            (selected) => {
+              if (selected.length > 0) {
+                const target = selected[0];
+                setHand(prev => prev.filter(c => c.id !== target.id));
+                setExiledCards(prevExile => [...prevExile, target]);
+                addLog(`【塩化ナトリウム】 ${target.name} を手札から除外しました。`);
+              }
+              cleanupMaterials(usedCards, "塩化ナトリウム");
+            }
+          );
+        }, 100);
+        compoundLog = `「塩化ナトリウム」の効果：体力を 3 回復した。`;
+        break;
+      }
+      case "塩化カルシウム": {
+        nextPlayer.shield += 8;
+        triggerGraveSalvage = true;
+        setTimeout(() => {
+          openSelectionModal(
+            "除外する手札を1枚選んでください（塩化カルシウム）",
+            updatedHand,
+            1,
+            1,
+            (selected) => {
+              if (selected.length > 0) {
+                const target = selected[0];
+                setHand(prev => prev.filter(c => c.id !== target.id));
+                setExiledCards(prevExile => [...prevExile, target]);
+                addLog(`【塩化カルシウム】 ${target.name} を手札から除外しました。`);
+              }
+              cleanupMaterials(usedCards, "塩化カルシウム");
+            }
+          );
+        }, 100);
+        compoundLog = `「塩化カルシウム」の効果：シールドを 8 獲得した。`;
+        break;
+      }
+      case "塩化アンモニウム": {
+        let dmg = exiledCards.length * 2;
+        if (isPlayerFeared) {
+          dmg = Math.floor(dmg / 2);
+        }
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+
+        if (exiledCards.length > 0) {
+          triggerGraveSalvage = true;
+          setTimeout(() => {
+            openSelectionModal(
+              "手札に戻す除外カードを4枚まで選んでください",
+              exiledCards,
+              1,
+              4,
+              (selected) => {
+                if (selected.length > 0) {
+                  const selectedIds = selected.map(s => s.id);
+                  setExiledCards(prev => prev.filter(c => !selectedIds.includes(c.id)));
+                  setHand(prev => [...prev, ...selected]);
+                  addLog(`【塩化アンモニウム】除外から ${selected.map(c => c.name).join("、")} を手札に回収しました！`);
+                }
+                cleanupMaterials(usedCards, "塩化アンモニウム");
+              }
+            );
+          }, 100);
+        }
+        compoundLog = `「塩化アンモニウム」の効果：敵に除外枚数×2の ${dmg} ダメージを与えた。`;
+        break;
+      }
+      case "塩化カリウム": {
+        const existingOxy = nextPlayer.debuffs.find(b => b.name === "酸素供給");
+        if (existingOxy) {
+          existingOxy.count += 2;
+        } else {
+          nextPlayer.debuffs.push({ name: "酸素供給", count: 2, description: "ターン開始時、使い捨てのOカードを手札に1枚生成する。" });
+        }
+
+        if (exiledCards.length > 0) {
+          triggerGraveSalvage = true;
+          setTimeout(() => {
+            openSelectionModal(
+              "手札に戻す除外カードを1枚選んでください（塩化カリウム）",
+              exiledCards,
+              1,
+              1,
+              (selected) => {
+                if (selected.length > 0) {
+                  const target = selected[0];
+                  setExiledCards(prev => prev.filter(c => c.id !== target.id));
+                  setHand(prev => [...prev, target]);
+                  addLog(`【塩化カリウム】除外から ${target.name} を手札に戻しました。`);
+                }
+                cleanupMaterials(usedCards, "塩化カリウム");
+              }
+            );
+          }, 100);
+        }
+        compoundLog = `「塩化カリウム」の効果：バフ「酸素供給（2ターン）」を獲得した。`;
+        break;
+      }
+      case "硫化ナトリウム": {
+        let dmg = exiledCards.length;
+        if (isPlayerFeared) {
+          dmg = Math.floor(dmg / 2);
+        }
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+        nextPlayer.hp = Math.min(nextPlayer.maxHp, nextPlayer.hp + 4);
+        compoundLog = `「硫化ナトリウム」の効果：敵に除外枚数と同値の ${dmg} ダメージを与え、体力を 4 回復した。`;
+        break;
+      }
+      case "硫化カルシウム": {
+        let dmg = exiledCards.length;
+        if (isPlayerFeared) {
+          dmg = Math.floor(dmg / 2);
+        }
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+        nextPlayer.shield += 4;
+        compoundLog = `「硫化カルシウム」の効果：敵に除外枚数と同値の ${dmg} ダメージを与え、自身に 4 のシールドを付与した。`;
+        break;
+      }
+      case "水酸化ナトリウム": {
+        nextPlayer.hp = Math.min(nextPlayer.maxHp, nextPlayer.hp + 1);
+        drawCountAfter = 3;
+        compoundLog = `「水酸化ナトリウム」の効果：体力を 1 回復し、カードを 3 枚引いた。`;
+        break;
+      }
+      case "水酸化カリウム": {
+        const existingOxy = nextPlayer.debuffs.find(b => b.name === "酸素供給");
+        if (existingOxy) {
+          existingOxy.count += 2;
+        } else {
+          nextPlayer.debuffs.push({ name: "酸素供給", count: 2, description: "ターン開始時、使い捨てのOカードを手札に1枚生成する。" });
+        }
+        drawCountAfter = 2;
+        compoundLog = `「水酸化カリウム」の効果：バフ「酸素供給（2ターン）」を獲得し、カードを 2 枚引いた。`;
+        break;
+      }
+      case "水酸化鉄": {
+        let dmg = nextPlayer.shield;
+        if (isPlayerFeared) {
+          dmg = Math.floor(dmg / 2);
+        }
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        nextEnemy.shield = Math.max(0, nextEnemy.shield - dmg);
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+        
+        drawCountAfter = Math.max(0, handLimit - updatedHand.length);
+        compoundLog = `「水酸化鉄」の効果：シールドと同値の ${dmg} ダメージを与え、手札が上限（${handLimit}枚）になるように引き込みました！`;
+        break;
+      }
       default:
         break;
     }
@@ -1288,11 +2287,29 @@ export default function App() {
     setThisTurnH2OSynthesized(false);
     addLog(`--- ターン ${turn + 1} (プレイヤーのターン) ---`);
 
-    // プレイヤーのシールドを0にリセット（ターン制限のため）
-    setPlayer(prev => ({
-      ...prev,
-      shield: 0
-    }));
+    // バフの処理と減衰
+    let hasShieldKeep = currentPlayerState.debuffs.some(b => b.name === "シールド持続" && b.count > 0);
+    
+    setPlayer(prev => {
+      const nextShield = hasShieldKeep ? prev.shield : 0;
+      if (hasShieldKeep) {
+        addLog("【シールド持続】の効果により、シールドが維持されました！");
+      }
+
+      // バフカウントの更新
+      const nextDebuffs = prev.debuffs.map(b => {
+        if (["シールド持続", "酸素供給", "回収反応", "恐怖", "毒"].includes(b.name)) {
+          return { ...b, count: b.count - 1 };
+        }
+        return b;
+      }).filter(b => b.count > 0);
+
+      return {
+        ...prev,
+        shield: nextShield,
+        debuffs: nextDebuffs
+      };
+    });
 
     // ターン開始時の引く枚数の算出（基本は手札上限、丸底フラスコで+1、割れたフラスコで-1）
     let drawCount = handLimit;
@@ -1303,8 +2320,16 @@ export default function App() {
       drawCount -= 1;
     }
 
+    // 酸素供給バフによる追加の使い捨てOカード生成
+    const extraCards: ElementCard[] = [];
+    const hasOxygenSupply = currentPlayerState.debuffs.some(b => b.name === "酸素供給" && b.count > 0);
+    if (hasOxygenSupply) {
+      extraCards.push(createCard("O", true));
+      addLog("【酸素供給の効果】ターン開始時に、使い捨てのO（酸素）を1枚手札に生成しました。");
+    }
+
     // カードをドロー
-    drawCards(deckRef.current, [], graveRef.current, drawCount);
+    drawCards(deckRef.current, extraCards, graveRef.current, drawCount);
   };
 
   // 戦闘勝利処理
@@ -1318,6 +2343,9 @@ export default function App() {
     setGold(prev => prev + earnedGold);
     setEarnedGoldAmount(earnedGold);
     addLog(`【戦闘勝利】敵を撃破しました！報酬として ${earnedGold} ゴールドを獲得しました！`);
+    
+    // 使い捨て（disposable）カードをグローバルデッキから永久削除
+    setGlobalDeck(prev => prev.filter(card => !card.disposable));
     
     // ダンジョンマップの現在位置を完了状態にする
     if (currentNodeId) {
@@ -1334,7 +2362,7 @@ export default function App() {
 
   // ダンジョン開始初期化
   const startDungeon = () => {
-    const initialDeck = INITIAL_DECK_TYPES.map(createCard);
+    const initialDeck = INITIAL_DECK_TYPES.map(t => createCard(t));
     setGlobalDeck(initialDeck);
     setGold(100);
     setHandLimit(6);
@@ -1664,7 +2692,7 @@ export default function App() {
                   <button
                     id="btn-select-slime"
                     onClick={() => {
-                      const initialDeck = INITIAL_DECK_TYPES.map(createCard);
+                      const initialDeck = INITIAL_DECK_TYPES.map(t => createCard(t));
                       setGlobalDeck(initialDeck);
                       setGold(100);
                       startBattle("slime");
@@ -1687,7 +2715,7 @@ export default function App() {
                   <button
                     id="btn-select-bat"
                     onClick={() => {
-                      const initialDeck = INITIAL_DECK_TYPES.map(createCard);
+                      const initialDeck = INITIAL_DECK_TYPES.map(t => createCard(t));
                       setGlobalDeck(initialDeck);
                       setGold(100);
                       startBattle("bat");
@@ -1710,7 +2738,7 @@ export default function App() {
                   <button
                     id="btn-select-ghost"
                     onClick={() => {
-                      const initialDeck = INITIAL_DECK_TYPES.map(createCard);
+                      const initialDeck = INITIAL_DECK_TYPES.map(t => createCard(t));
                       setGlobalDeck(initialDeck);
                       setGold(100);
                       startBattle("ghost");
@@ -2993,6 +4021,86 @@ export default function App() {
                   }`}
                 >
                   選択した5枚を消滅させ、実験器具を入手する
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* GENERAL CARD SELECTION MODAL */}
+      <AnimatePresence>
+        {showSelectionModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              className="bg-slate-900 border border-cyan-500/30 rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-[0_0_50px_rgba(6,182,212,0.15)] overflow-hidden"
+            >
+              <div className="px-5 py-4 border-b border-slate-800 bg-slate-950 flex justify-between items-center">
+                <div>
+                  <h4 className="font-display font-bold text-base text-cyan-400">
+                    {selectionModalTitle}
+                  </h4>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    必要な枚数を選択して「選択を確定する」ボタンを押してください。
+                  </p>
+                </div>
+                <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950/30 border border-cyan-900/50 px-2.5 py-1 rounded-lg">
+                  選択中: {selectionSelectedIds.length} / {selectionMinMax.max} 枚
+                </span>
+              </div>
+
+              <div className="p-5 overflow-y-auto flex-1 bg-slate-950/30">
+                {selectionModalPool.length === 0 ? (
+                  <p className="text-xs text-slate-500 text-center py-8">選択可能なカードがありません。</p>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2.5">
+                    {selectionModalPool.map((card, idx) => {
+                      const isSelected = selectionSelectedIds.includes(card.id);
+                      return (
+                        <button 
+                          key={card.id + "-" + idx}
+                          onClick={() => toggleSelectionModalCard(card.id)}
+                          className={`p-2.5 rounded-lg border flex flex-col justify-between items-center text-center font-display hover:scale-105 active:scale-95 transition cursor-pointer relative ${card.bgClass} ${
+                            isSelected 
+                              ? "border-cyan-500 ring-2 ring-cyan-500/50 bg-cyan-950/20" 
+                              : card.borderClass
+                          }`}
+                        >
+                          {isSelected && (
+                            <div className="absolute -top-1.5 -right-1.5 bg-cyan-500 text-slate-950 rounded-full p-0.5 text-[8px] font-bold w-4 h-4 flex items-center justify-center shadow-md">
+                              ✓
+                            </div>
+                          )}
+                          <span className={`text-base font-bold ${isSelected ? "text-cyan-400" : card.textColor}`}>{card.type}</span>
+                          <span className="text-[8px] text-slate-400 font-mono mt-1 leading-tight">{card.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 border-t border-slate-800 bg-slate-950 flex gap-3">
+                <button
+                  disabled={selectionSelectedIds.length < selectionMinMax.min}
+                  onClick={handleConfirmSelectionModal}
+                  className={`w-full py-3 rounded-xl font-bold text-sm transition cursor-pointer ${
+                    selectionSelectedIds.length >= selectionMinMax.min
+                      ? "bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-950/50 font-bold"
+                      : "bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed"
+                  }`}
+                >
+                  {selectionSelectedIds.length >= selectionMinMax.min 
+                    ? "選択を確定する" 
+                    : `最低でも ${selectionMinMax.min} 枚選択してください`}
                 </button>
               </div>
             </motion.div>
