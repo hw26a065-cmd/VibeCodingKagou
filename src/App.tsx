@@ -352,8 +352,8 @@ const RECIPES: CompoundRecipe[] = [
     implemented: true
   },
   { name: "炭酸", formula: "H2CO3", formulaDisplay: (<span>H<sub>2</sub>CO<sub>3</sub></span>), elements: { H: 2, C: 1, O: 3 }, description: "二酸化炭素が水に溶けたもの。大量のダメージを与え、さらに手札の枚数に応じた強力な毒素を流し込む。", testPlayEffect: "・敵に5ダメージを与える\n・カードを3枚引く\n・引いた後の手札の枚数分「毒デバフ」を敵に付与する", implemented: true },
-  { name: "シュウ酸", formula: "H2C2O4", formulaDisplay: (<span>H<sub>2</sub>C<sub>2</sub>O<sub>4</sub></span>), elements: { H: 2, C: 2, O: 4 }, description: "植物に含まれる酸。効果は今後実装予定。", implemented: false },
-  { name: "酢酸", formula: "CH3COOH", formulaDisplay: (<span>CH<sub>3</sub>COOH</span>), elements: { C: 2, H: 4, O: 2 }, description: "酸味の主成分。手札上限拡張が必要なレシピ。効果は今後実装予定。", implemented: false },
+  { name: "シュウ酸", formula: "H2C2O4", formulaDisplay: (<span>H<sub>2</sub>C<sub>2</sub>O<sub>4</sub></span>), elements: { H: 2, C: 2, O: 4 }, description: "植物に含まれる酸。敵に8ダメージを与え、さらに毒（カウント5）を付与し、カードを5枚引く。", testPlayEffect: "・敵一体に8ダメージを与える\n・対象に「デバフ：毒」（カウント5）を付与する\n・カードを5枚引く", implemented: true },
+  { name: "酢酸", formula: "CH3COOH", formulaDisplay: (<span>CH<sub>3</sub>COOH</span>), elements: { C: 2, H: 4, O: 2 }, description: "酢の主成分。敵に15ダメージの激痛を与え、手札上限になるまでカードを引く。", testPlayEffect: "・敵一体に15ダメージを与える\n・手札の上限になるまでカードを引く", implemented: true },
   { name: "硝酸", formula: "HNO3", formulaDisplay: (<span>HNO<sub>3</sub></span>), elements: { H: 1, N: 1, O: 3 }, description: "極めて強い酸性を持つ。激しい反応性で敵にダメージを与え、墓地から好きなカードを2枚手札に戻す。", testPlayEffect: "・敵に4ダメージを与える\n・墓地から好きなカードを2枚選んで手札に加える", implemented: true },
   { name: "亜硝酸", formula: "HNO2", formulaDisplay: (<span>HNO<sub>2</sub></span>), elements: { H: 1, N: 1, O: 2 }, description: "不安定な一価の酸。敵にダメージを与え、墓地から好きなカードを1枚手札に戻す。さらにこの合成に使用したカードは墓地に行く代わりに山札に戻してシャッフルされる。", testPlayEffect: "・敵に3ダメージを与える\n・墓地から好きなカードを1枚選んで手札に加える\n・この合成に使用したカードは墓地に行く代わりに山札に戻し、山札をシャッフルする", implemented: true },
   { name: "二酸化硫黄", formula: "SO2", formulaDisplay: (<span>SO<sub>2</sub></span>), elements: { S: 1, O: 2 }, description: "火山ガスに含まれる。同じ対象に、このバトル中除外したカード枚数分のダメージを与える。", testPlayEffect: "・敵一体に対象に3ダメージを与える\n・同じ対象に、このバトル中除外したカード枚数分のダメージを与える\n・この合成で使用したS（硫黄）をこのバトル中除外する\n・この合成で使用したO（酸素）を墓地に送る代わりに山札に戻す", implemented: true },
@@ -388,8 +388,8 @@ const RECIPES: CompoundRecipe[] = [
   { name: "塩化カルシウム", formula: "CaCl2", formulaDisplay: (<span>CaCl<sub>2</sub></span>), elements: { Ca: 1, Cl: 2 }, description: "融雪剤。シールドを張りつつ、不要な手札1枚を除外に送る。", testPlayEffect: "・自身に8 of シールドを付与する\n・手札から好きなカードを1枚選び、このバトルから除外する", implemented: true },
   { name: "塩化アンモニウム", formula: "NH4Cl", formulaDisplay: (<span>NH<sub>4</sub>Cl</span>), elements: { N: 1, H: 4, Cl: 1 }, description: "除外されたカードのパワーで攻撃し、除外カード4枚を再び手札に呼び戻す。", testPlayEffect: "・敵一体に、このバトル中除外したカード枚数の2倍のダメージを与える\n・このバトル中に除外されたカードから4枚選び、それらを除外から取り除き手札に加える", implemented: true },
   { name: "塩化カリウム", formula: "KCl", formulaDisplay: (<span>KCl</span>), elements: { K: 1, Cl: 1 }, description: "除外された世界から好きなカードを1枚手札に戻し、酸素供給を開始する。", testPlayEffect: "・除外されたカードから好きなカードを1枚選び、除外から取り除き手札に加える\n・「バフ：酸素供給」（カウント2）を自分に付与する", implemented: true },
-  { name: "硫化銅(I)", formula: "Cu2S", formulaDisplay: (<span>Cu<sub>2</sub>S</span>), elements: { Cu: 2, S: 1 }, description: "効果未定。今後のアップデートをお楽しみに。", implemented: false },
-  { name: "硫化鉄(II)", formula: "FeS", formulaDisplay: (<span>FeS</span>), elements: { Fe: 1, S: 1 }, description: "効果未定。今後のアップデートをお楽しみに。", implemented: false },
+  { name: "硫化銅(I)", formula: "Cu2S", formulaDisplay: (<span>Cu<sub>2</sub>S</span>), elements: { Cu: 2, S: 1 }, description: "黒色の固体。山札から1枚を墓地に送り、墓地の枚数4枚につき1のダメージを敵に与え、さらに自身の手札を1枚選んで除外する。", testPlayEffect: "・山札から1枚を墓地に送る\n・敵一体に対象に墓地の枚数4枚につき1のダメージを与える\n・自身の手札を1枚選び、このバトルから除外する", implemented: true },
+  { name: "硫化鉄(II)", formula: "FeS", formulaDisplay: (<span>FeS</span>), elements: { Fe: 1, S: 1 }, description: "暗褐色の固体。自身の手札を1枚選んで除外し、これまでに除外されたカードの総枚数に等しい値のシールドを自分に付与する。", testPlayEffect: "・自身の手札を1枚選び、このバトルから除外する\n・自分にこのバトル中除外されたカードの枚数の値だけシールドを付与する", implemented: true },
   { name: "硫化ナトリウム", formula: "Na2S", formulaDisplay: (<span>Na<sub>2</sub>S</span>), elements: { Na: 2, S: 1 }, description: "除外枚数に応じたダメージを与え、体力を4回復する。", testPlayEffect: "・敵一体に、このバトル中除外したカード枚数分のダメージを与える\n・自身の体力を4回復する", implemented: true },
   { name: "硫化カルシウム", formula: "CaS", formulaDisplay: (<span>CaS</span>), elements: { Ca: 1, S: 1 }, description: "除外枚数に応じたダメージを与え、4のシールドを得る。", testPlayEffect: "・敵一体に、このバトル中除外したカード枚数分のダメージを与える\n・自身に4 of シールドを付与する", implemented: true },
   { name: "水酸化ナトリウム", formula: "NaOH", formulaDisplay: (<span>NaOH</span>), elements: { Na: 1, O: 1, H: 1 }, description: "苛性ソーダ。少し回復し、カードを3枚一気に引き込む。", testPlayEffect: "・自身の体力を1回復する\n・カードを3枚引く", implemented: true },
@@ -583,6 +583,10 @@ export default function App() {
   const [shopArtifacts, setShopArtifacts] = useState<{ name: string; price: number; id: string }[]>([]);
   const [shopHealPrice, setShopHealPrice] = useState<number>(40);
   const [shopMaxHpPrice, setShopMaxHpPrice] = useState<number>(100);
+
+  // 戦闘勝利時の追加元素報酬状態
+  const [victoryRewardCards, setVictoryRewardCards] = useState<ElementType[]>([]);
+  const [hasChosenVictoryReward, setHasChosenVictoryReward] = useState<boolean>(false);
   
   // デッキ消滅モーダル
   const [showPurgeModal, setShowPurgeModal] = useState<boolean>(false);
@@ -1295,6 +1299,59 @@ export default function App() {
         }
 
         compoundLog = `「炭酸」の効果：敵に ${dmg} ダメージを与え、カードを ${drawnCount} 枚引き、手札の枚数（${poisonCount}枚）と同じカウント数 ${poisonCount} の「毒デバフ」を敵に付与した。`;
+        break;
+      }
+      case "シュウ酸": {
+        let dmg = 8;
+        if (isPlayerFeared) {
+          dmg = 4;
+          addLog("（プレイヤーが「恐怖」状態のため、与えるダメージが半減しました）");
+        }
+        if (enemy.id === "enemy-slime" && dmg > 0) {
+          dmg = Math.max(0, dmg - 1);
+          addLog("（スライムの特性〈液状生命体〉により、水素を含む化合物からのダメージが1軽減されました）");
+        }
+
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        let shieldDmg = Math.min(nextEnemy.shield, dmg);
+        
+        nextEnemy.shield -= shieldDmg;
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+
+        const existingPoison = nextEnemy.debuffs.find(d => d.name === "毒");
+        if (existingPoison) {
+          existingPoison.count += 5;
+        } else {
+          nextEnemy.debuffs.push({
+            name: "毒",
+            count: 5,
+            description: "相手のターン終了時、このカウント数だけのダメージを受ける。さらに蓄積するとカウントが増える。"
+          });
+        }
+
+        drawCountAfter = 5;
+        compoundLog = `「シュウ酸」の効果：敵に ${dmg} ダメージを与え、「毒デバフ（カウント5）」を付与し、カードを 5 枚引いた。`;
+        break;
+      }
+      case "酢酸": {
+        let dmg = 15;
+        if (isPlayerFeared) {
+          dmg = 7;
+          addLog("（プレイヤーが「恐怖」状態のため、与えるダメージが半減しました）");
+        }
+        if (enemy.id === "enemy-slime" && dmg > 0) {
+          dmg = Math.max(0, dmg - 1);
+          addLog("（スライムの特性〈液状生命体〉により、水素を含む化合物からのダメージが1軽減されました）");
+        }
+
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        let shieldDmg = Math.min(nextEnemy.shield, dmg);
+        
+        nextEnemy.shield -= shieldDmg;
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+
+        drawCountAfter = Math.max(0, handLimit - updatedHand.length);
+        compoundLog = `「酢酸」の効果：敵に ${dmg} ダメージを与え、手札が上限（${handLimit}枚）になるように引き込みました！`;
         break;
       }
       case "硝酸": {
@@ -2047,6 +2104,100 @@ export default function App() {
         compoundLog = `「硫化カルシウム」の効果：敵に除外枚数と同値の ${dmg} ダメージを与え、自身に 4 のシールドを付与した。`;
         break;
       }
+      case "硫化銅(I)": {
+        let tempDeck = [...updatedDeck];
+        let tempGrave = [...updatedGrave];
+        if (tempDeck.length === 0 && tempGrave.length > 0) {
+          tempDeck = [...tempGrave];
+          tempGrave = [];
+          for (let i = tempDeck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [tempDeck[i], tempDeck[j]] = [tempDeck[j], tempDeck[i]];
+          }
+          addLog("【山札再構築】山札が空だったため、墓地のカードをシャッフルして山札を再構築しました。");
+        }
+
+        if (tempDeck.length > 0) {
+          const sentCard = tempDeck.pop();
+          if (sentCard) {
+            tempGrave.push(sentCard);
+            addLog(`【硫化銅(I)】山札から ${sentCard.name} を墓地に送りました。`);
+          }
+        } else {
+          addLog("【硫化銅(I)】山札と墓地が両方とも空だったため、墓地に送るカードはありませんでした。");
+        }
+
+        updatedDeck = tempDeck;
+        updatedGrave = tempGrave;
+
+        let dmg = Math.floor(updatedGrave.length / 4);
+        if (isPlayerFeared) {
+          dmg = Math.floor(dmg / 2);
+          addLog("（プレイヤーが「恐怖」状態のため、与えるダメージが半減しました）");
+        }
+
+        let finalDmg = Math.max(0, dmg - nextEnemy.shield);
+        let shieldDmg = Math.min(nextEnemy.shield, dmg);
+        
+        nextEnemy.shield -= shieldDmg;
+        nextEnemy.hp = Math.max(0, nextEnemy.hp - finalDmg);
+
+        triggerGraveSalvage = true;
+        setTimeout(() => {
+          openSelectionModal(
+            "除外する手札を1枚選んでください（硫化銅(I)）",
+            updatedHand,
+            1,
+            1,
+            (selected) => {
+              if (selected.length > 0) {
+                const target = selected[0];
+                setHand(prev => prev.filter(c => c.id !== target.id));
+                setExiledCards(prevExile => [...prevExile, target]);
+                addLog(`【硫化銅(I)】 ${target.name} を手札から除外しました。`);
+              }
+              cleanupMaterials(usedCards, "硫化銅(I)");
+            }
+          );
+        }, 100);
+
+        compoundLog = `「硫化銅(I)」の効果：山札から1枚を墓地に送り、墓地枚数（${updatedGrave.length}枚）に応じた ${dmg} ダメージを敵に与えました。手札から1枚選んで除外します。`;
+        break;
+      }
+      case "硫化鉄(II)": {
+        triggerGraveSalvage = true;
+        setTimeout(() => {
+          openSelectionModal(
+            "除外する手札を1枚選んでください（硫化鉄(II)）",
+            updatedHand,
+            1,
+            1,
+            (selected) => {
+              if (selected.length > 0) {
+                const target = selected[0];
+                setHand(prev => {
+                  const nextHand = prev.filter(c => c.id !== target.id);
+                  setExiledCards(prevExile => {
+                    const nextExile = [...prevExile, target];
+                    const shieldAmount = nextExile.length;
+                    setPlayer(p => ({
+                      ...p,
+                      shield: p.shield + shieldAmount
+                    }));
+                    addLog(`【硫化鉄(II)】 ${target.name} を手札から除外し、このバトル中除外されたカードの総枚数分（${shieldAmount}）のシールドを獲得しました。`);
+                    return nextExile;
+                  });
+                  return nextHand;
+                });
+              }
+              cleanupMaterials(usedCards, "硫化鉄(II)");
+            }
+          );
+        }, 100);
+
+        compoundLog = `「硫化鉄(II)」の効果：手札を1枚除外し、その時点の除外カード総数と同値のシールドを獲得します。`;
+        break;
+      }
       case "水酸化ナトリウム": {
         nextPlayer.hp = Math.min(nextPlayer.maxHp, nextPlayer.hp + 1);
         drawCountAfter = 3;
@@ -2347,6 +2498,15 @@ export default function App() {
     // 使い捨て（disposable）カードをグローバルデッキから永久削除
     setGlobalDeck(prev => prev.filter(card => !card.disposable));
     
+    // すべての元素からランダムに3枚を報酬に設定
+    const allElements: ElementType[] = ["H", "O", "C", "N", "Cl", "S", "Cu", "Fe", "Na", "K", "Ca", "F"];
+    const rewards: ElementType[] = [];
+    for (let i = 0; i < 3; i++) {
+      rewards.push(allElements[Math.floor(Math.random() * allElements.length)]);
+    }
+    setVictoryRewardCards(rewards);
+    setHasChosenVictoryReward(false);
+
     // ダンジョンマップの現在位置を完了状態にする
     if (currentNodeId) {
       setDungeonMap(prev => prev.map(node => {
@@ -2358,6 +2518,18 @@ export default function App() {
     }
     
     setGameState("victory");
+  };
+
+  const handleChooseVictoryRewardCard = (type: ElementType) => {
+    const newCard = createCard(type);
+    setGlobalDeck(prev => [...prev, newCard]);
+    setHasChosenVictoryReward(true);
+    addLog(`【戦闘勝利報酬】デッキに「${ELEMENT_DEFS[type].name}（${type}）」カードを1枚追加しました。`);
+  };
+
+  const handleSkipVictoryReward = () => {
+    setHasChosenVictoryReward(true);
+    addLog(`【戦闘勝利報酬】カードを追加せずに次のステップへ進みました。`);
   };
 
   // ダンジョン開始初期化
@@ -2396,8 +2568,8 @@ export default function App() {
       return Math.max(10, base + offset); // 最小10
     };
     
-    // カード商品を3つ生成（H, O, C, N からランダムに3つ選出）
-    const types: ElementType[] = ["H", "O", "C", "N"];
+    // カード商品を3つ生成（すべての元素からランダムに3つ選出）
+    const types: ElementType[] = ["H", "O", "C", "N", "Cl", "S", "Cu", "Fe", "Na", "K", "Ca", "F"];
     const cards = Array.from({ length: 3 }, () => {
       const t = types[Math.floor(Math.random() * types.length)];
       return {
@@ -3325,7 +3497,7 @@ export default function App() {
                 化学的な連鎖合成と、過不足のない完璧な元素比率の計算により、見事エネミーの撃破に成功しました！
               </p>
 
-              <div className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 text-left font-mono text-xs">
+              <div className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 mb-4 text-left font-mono text-xs">
                 <h4 className="font-bold text-slate-300 border-b border-slate-800 pb-2 mb-2 font-display">戦闘最終ステータス</h4>
                 <p className="flex justify-between py-1">
                   <span>プレイヤー残り体力:</span>
@@ -3341,39 +3513,90 @@ export default function App() {
                 </p>
               </div>
 
+              {/* 勝利報酬：カード追加 */}
+              {!hasChosenVictoryReward ? (
+                <div className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 text-center">
+                  <h4 className="font-display font-bold text-xs text-cyan-400 mb-2 flex items-center justify-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>🎁 勝利報酬：元素カード追加</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-400 mb-4">
+                    以下の3枚から、デッキに加えたい元素を1枚選択してください（選ばずに進むことも可能です）。
+                  </p>
+                  
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {victoryRewardCards.map((type, idx) => {
+                      const def = ELEMENT_DEFS[type];
+                      return (
+                        <button
+                          key={idx}
+                          id={`btn-reward-card-${idx}`}
+                          onClick={() => handleChooseVictoryRewardCard(type)}
+                          className={`p-2.5 border rounded-xl flex flex-col items-center justify-between text-center transition duration-200 cursor-pointer ${def.bgClass} border-slate-800 hover:${def.borderClass} hover:${def.glowClass} h-20`}
+                        >
+                          <span className={`text-sm font-bold font-display ${def.textColor}`}>{type}</span>
+                          <span className="text-[9px] text-slate-300 font-semibold leading-none truncate w-full">{def.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    id="btn-skip-reward"
+                    onClick={handleSkipVictoryReward}
+                    className="text-[10px] text-slate-500 hover:text-slate-300 underline font-mono cursor-pointer transition"
+                  >
+                    カードを追加しない（スキップ）
+                  </button>
+                </div>
+              ) : (
+                <div className="w-full bg-slate-900/60 border border-slate-800/80 rounded-xl p-3.5 mb-6 text-center text-xs text-green-400 font-bold font-display">
+                  ✓ 報酬の選択が完了しました。
+                </div>
+              )}
+
               <div className="flex flex-col gap-3 w-full">
-                {currentNodeId ? (
-                  // ダンジョン中の場合
-                  dungeonMap.find(n => n.id === currentNodeId)?.depth === 5 ? (
-                    // 5マス目（ボス）の場合
-                    <button
-                      id="btn-victory-to-clear"
-                      onClick={() => setGameState("game_clear")}
-                      className="w-full py-3 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition duration-200 cursor-pointer"
-                    >
-                      👑 実験室から脱出し、ゲームクリアへ！
-                    </button>
+                {hasChosenVictoryReward ? (
+                  currentNodeId ? (
+                    // ダンジョン中の場合
+                    dungeonMap.find(n => n.id === currentNodeId)?.depth === 4 ? (
+                      // 5マス目（ボス）の場合
+                      <button
+                        id="btn-victory-to-clear"
+                        onClick={() => setGameState("game_clear")}
+                        className="w-full py-3 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition duration-200 cursor-pointer"
+                      >
+                        👑 実験室から脱出し、ゲームクリアへ！
+                      </button>
+                    ) : (
+                      // 通常のマスの場合
+                      <button
+                        id="btn-victory-to-map"
+                        onClick={() => {
+                          setGameState("dungeon_map");
+                          setEnemy(null);
+                        }}
+                        className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition duration-200 cursor-pointer"
+                      >
+                        ダンジョンマップに戻る
+                      </button>
+                    )
                   ) : (
-                    // 通常のマスの場合
+                    // 個別戦闘テストの場合
                     <button
-                      id="btn-victory-to-map"
-                      onClick={() => {
-                        setGameState("dungeon_map");
-                        setEnemy(null);
-                      }}
+                      id="btn-victory-continue"
+                      onClick={returnToTitle}
                       className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition duration-200 cursor-pointer"
                     >
-                      ダンジョンマップに戻る
+                      他の敵を戦闘テストする
                     </button>
                   )
                 ) : (
-                  // 個別戦闘テストの場合
                   <button
-                    id="btn-victory-continue"
-                    onClick={returnToTitle}
-                    className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition duration-200 cursor-pointer"
+                    disabled
+                    className="w-full py-3 bg-slate-800 text-slate-500 font-bold text-sm rounded-xl border border-slate-700 cursor-not-allowed"
                   >
-                    他の敵を戦闘テストする
+                    報酬を選択してください
                   </button>
                 )}
               </div>
