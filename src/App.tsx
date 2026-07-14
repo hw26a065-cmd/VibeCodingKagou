@@ -2755,12 +2755,9 @@ export default function App() {
           </div>
           <div>
             <h1 className="font-display font-bold text-lg md:text-xl tracking-wider text-cyan-400 flex items-center gap-2">
-              元素ローグライクカードゲーム 
-              <span className="text-xs bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded">
-                バトルテストプレイ版
-              </span>
+              化合ローグライク LAB
             </h1>
-            <p className="text-xs text-slate-400 font-mono hidden md:block">v1.1.0 (Dungeon, Shop, & Artifacts Sandbox)</p>
+            <p className="text-xs text-slate-400 font-mono hidden md:block">v1.2.0 (Dungeon, Shop, & Artifacts)</p>
           </div>
         </div>
 
@@ -2830,11 +2827,11 @@ export default function App() {
               </div>
 
               <h2 className="text-3xl md:text-4xl font-display font-bold mb-4 tracking-tight text-white">
-                元素ローグライク：カードバトル ＆ ダンジョン試作
+                化合ローグライク LAB
               </h2>
               
               <p className="text-slate-400 text-sm md:text-base mb-8 max-w-md leading-relaxed">
-                化学をテーマにした独自のローグライクカードバトルの試作版です。
+                化学をテーマにした独自のローグライクカードバトルゲームです。
                 初期元素カードを過不足なく選択して「合成確定」し、強力な化学反応を巻き起こして敵を撃破してください。
               </p>
 
@@ -2898,7 +2895,7 @@ export default function App() {
               </div>
 
               <div className="text-xs text-slate-500 font-mono">
-                ※現在のテストプレイ版は、プレイヤーの最大HP 20、初期デッキ 20枚が標準装備されています。
+                ※プレイヤーの最大HP 20、初期デッキ 20枚が標準装備されています。
               </div>
             </motion.div>
           )}
@@ -3369,7 +3366,7 @@ export default function App() {
                     化合物レシピ図鑑（全51種抜粋）
                   </h3>
                   <p className="text-xs text-slate-400 mt-1 leading-normal">
-                    本作に登場する化合物とその比率、そしてテストプレイ版で有効化されている効果の一覧です。
+                    本作に登場する化合物とその比率、および実装されている効果の一覧です。
                   </p>
                 </div>
                 <button
@@ -3418,7 +3415,7 @@ export default function App() {
                           {recipe.name}
                           {recipe.implemented && (
                             <span className="text-[9px] bg-cyan-950 text-cyan-400 border border-cyan-800 px-1.5 py-0.2 rounded font-mono font-bold">
-                              テスト稼働中
+                              実装済み
                             </span>
                           )}
                         </span>
@@ -3434,7 +3431,7 @@ export default function App() {
 
                     {recipe.implemented && recipe.testPlayEffect && (
                       <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-green-400 whitespace-pre-line">
-                        <span className="text-[10px] text-slate-500 font-bold block mb-0.5 font-sans">【テストプレイ時効果】</span>
+                        <span className="text-[10px] text-slate-500 font-bold block mb-0.5 font-sans">【化学反応効果】</span>
                         {recipe.testPlayEffect}
                       </div>
                     )}
@@ -3547,13 +3544,13 @@ export default function App() {
                       </button>
                     )
                   ) : (
-                    // 個別戦闘テストの場合
+                    // 単発戦闘の場合
                     <button
                       id="btn-victory-continue"
                       onClick={returnToTitle}
                       className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition duration-200 cursor-pointer"
                     >
-                      他の敵を戦闘テストする
+                      タイトルに戻る
                     </button>
                   )
                 ) : (
@@ -3628,7 +3625,7 @@ export default function App() {
                       元素研究室の廃墟 (Dungeon Stage 1)
                     </h3>
                     <p className="text-xs text-slate-400 mt-1">
-                      化学実験器具や素材が眠る遺跡です。奥行き5層の試作ルートを進み、最深部のボスを目指してください。
+                      化学実験器具や素材が眠る遺跡です。奥行き {dungeonLength} 層のルートを進み、最深部のボスを目指してください。
                     </p>
                   </div>
                   <button 
@@ -3984,7 +3981,7 @@ export default function App() {
               
               <h2 className="text-2xl md:text-3xl font-display font-bold text-amber-400 mb-2">🏆 ダンジョンクリア！ 🏆</h2>
               <p className="text-sm text-slate-400 mb-8 leading-relaxed">
-                研究室最深部のBOSSを見事に化学反応の力で圧倒しました！化学を愛する凄腕のプレイヤーとして、ここにテストプレイの終了を讃えます。
+                研究室最深部のBOSSを見事に化学反応の力で圧倒しました！化学を愛する凄腕のプレイヤーとして、ここにあなたの偉大なる勝利を讃えます。
               </p>
 
               <div className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 text-left font-mono text-xs flex flex-col gap-2">
@@ -4318,7 +4315,7 @@ export default function App() {
                     化合物レシピ図鑑（全51種抜粋）
                   </h3>
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    本作に登場する化合物とその比率、そしてテストプレイ版で有効化されている効果の一覧です。
+                    本作に登場する化合物とその比率、および実装されている効果の一覧です。
                   </p>
                 </div>
                 <button
@@ -4368,7 +4365,7 @@ export default function App() {
                             {recipe.name}
                             {recipe.implemented && (
                               <span className="text-[9px] bg-cyan-950 text-cyan-400 border border-cyan-800 px-1.5 py-0.2 rounded font-mono font-bold">
-                                テスト稼働中
+                                実装済み
                               </span>
                             )}
                           </span>
@@ -4384,7 +4381,7 @@ export default function App() {
 
                       {recipe.implemented && recipe.testPlayEffect && (
                         <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-green-400 whitespace-pre-line">
-                          <span className="text-[10px] text-slate-500 font-bold block mb-0.5 font-sans">【テストプレイ時効果】</span>
+                          <span className="text-[10px] text-slate-500 font-bold block mb-0.5 font-sans">【化学反応効果】</span>
                           {recipe.testPlayEffect}
                         </div>
                       )}
@@ -4399,7 +4396,7 @@ export default function App() {
 
       {/* FOOTER */}
       <footer className="border-t border-slate-800 bg-slate-950/40 py-4 px-6 text-center text-xs text-slate-500 font-mono">
-        元素ローグライクカードゲーム仕様書連携プロジェクト &copy; 2026. All rights reserved.
+        化合ローグライク LAB &copy; 2026. All rights reserved.
       </footer>
     </div>
   );

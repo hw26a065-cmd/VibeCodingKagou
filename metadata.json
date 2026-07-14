@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "化合ローグライク LAB",
+  "description": "化学をテーマにしたローグライクカードバトルゲーム",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
