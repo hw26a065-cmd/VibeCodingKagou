@@ -33,69 +33,51 @@ interface DungeonNode {
   completed: boolean;
 }
 
-const generateDungeonMap = (): DungeonNode[] => {
+const getDungeonDepthWidth = (depth: number, totalDepth: number): number => {
+  if (depth === 0 || depth === totalDepth - 1) {
+    return 1;
+  }
+  const mod = depth % 4;
+  if (mod === 0) return 1;
+  if (mod === 1) return 2;
+  if (mod === 2) return 3;
+  if (mod === 3) return 2;
+  return 1;
+};
+
+const generateDungeonMap = (totalDepth: number): DungeonNode[] => {
   const map: DungeonNode[] = [];
   const enemyPool: ("slime" | "bat" | "ghost")[] = ["slime", "bat", "ghost"];
   
-  // 深さ 0: 戦闘
-  map.push({
-    id: "node-0-0",
-    depth: 0,
-    type: "battle",
-    enemyType: enemyPool[Math.floor(Math.random() * enemyPool.length)],
-    completed: false
-  });
-  
-  // 深さ 1: 2ノード
-  for (let i = 0; i < 2; i++) {
-    const randType = ["battle", "event", "shop"][Math.floor(Math.random() * 3)] as "battle" | "event" | "shop";
-    map.push({
-      id: `node-1-${i}`,
-      depth: 1,
-      type: randType,
-      enemyType: randType === "battle" ? enemyPool[Math.floor(Math.random() * enemyPool.length)] : undefined,
-      completed: false
-    });
+  for (let depth = 0; depth < totalDepth; depth++) {
+    const width = getDungeonDepthWidth(depth, totalDepth);
+    const isBoss = depth === totalDepth - 1;
+    
+    for (let i = 0; i < width; i++) {
+      let type: "battle" | "event" | "shop" = "battle";
+      if (depth === 0) {
+        type = "battle";
+      } else if (isBoss) {
+        type = "battle";
+      } else {
+        type = ["battle", "event", "shop"][Math.floor(Math.random() * 3)] as "battle" | "event" | "shop";
+      }
+      
+      map.push({
+        id: `node-${depth}-${i}`,
+        depth,
+        type,
+        enemyType: type === "battle" ? enemyPool[Math.floor(Math.random() * enemyPool.length)] : undefined,
+        isBoss: isBoss ? true : undefined,
+        completed: false
+      });
+    }
   }
-  
-  // 深さ 2: 3ノード
-  for (let i = 0; i < 3; i++) {
-    const randType = ["battle", "event", "shop"][Math.floor(Math.random() * 3)] as "battle" | "event" | "shop";
-    map.push({
-      id: `node-2-${i}`,
-      depth: 2,
-      type: randType,
-      enemyType: randType === "battle" ? enemyPool[Math.floor(Math.random() * enemyPool.length)] : undefined,
-      completed: false
-    });
-  }
-  
-  // 深さ 3: 2ノード
-  for (let i = 0; i < 2; i++) {
-    const randType = ["battle", "event", "shop"][Math.floor(Math.random() * 3)] as "battle" | "event" | "shop";
-    map.push({
-      id: `node-3-${i}`,
-      depth: 3,
-      type: randType,
-      enemyType: randType === "battle" ? enemyPool[Math.floor(Math.random() * enemyPool.length)] : undefined,
-      completed: false
-    });
-  }
-  
-  // 深さ 4: ボス
-  map.push({
-    id: "node-4-0",
-    depth: 4,
-    type: "battle",
-    enemyType: enemyPool[Math.floor(Math.random() * enemyPool.length)],
-    isBoss: true,
-    completed: false
-  });
   
   return map;
 };
 
-const isNodeConnected = (fromId: string | null, toNode: DungeonNode): boolean => {
+const isNodeConnected = (fromId: string | null, toNode: DungeonNode, totalDepth: number): boolean => {
   if (fromId === null) {
     return toNode.depth === 0;
   }
@@ -110,20 +92,26 @@ const isNodeConnected = (fromId: string | null, toNode: DungeonNode): boolean =>
   
   const toIdx = parseInt(toNode.id.split("-")[2], 10);
   
-  if (fromDepth === 0) {
-    return toIdx === 0 || toIdx === 1;
+  const fromWidth = getDungeonDepthWidth(fromDepth, totalDepth);
+  const toWidth = getDungeonDepthWidth(toNode.depth, totalDepth);
+  
+  if (fromWidth === 1) {
+    return true; 
   }
-  if (fromDepth === 1) {
+  if (toWidth === 1) {
+    return toIdx === 0;
+  }
+  if (fromWidth === 2 && toWidth === 3) {
     if (fromIdx === 0) return toIdx === 0 || toIdx === 1;
     if (fromIdx === 1) return toIdx === 1 || toIdx === 2;
   }
-  if (fromDepth === 2) {
+  if (fromWidth === 3 && toWidth === 2) {
     if (fromIdx === 0) return toIdx === 0;
     if (fromIdx === 1) return toIdx === 0 || toIdx === 1;
     if (fromIdx === 2) return toIdx === 1;
   }
-  if (fromDepth === 3) {
-    return toIdx === 0;
+  if (fromWidth === 2 && toWidth === 2) {
+    return fromIdx === toIdx || Math.abs(fromIdx - toIdx) <= 1;
   }
   
   return false;
@@ -570,6 +558,7 @@ export default function App() {
   const [globalDeck, setGlobalDeck] = useState<ElementCard[]>([]);
   const [dungeonMap, setDungeonMap] = useState<DungeonNode[]>([]);
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
+  const [dungeonLength, setDungeonLength] = useState<number>(5);
   
   // イベントやショップ関連の状態
   const [activeEvent, setActiveEvent] = useState<{
@@ -2301,16 +2290,22 @@ export default function App() {
       }
 
       // 墓地回収画面の起動
-      if (updatedGrave.length === 0) {
-        addLog("（墓地が空のため、カードを回収できませんでした）");
-        cleanupAfterSalvage(usedCards, matchedCompound.name);
+      if (salvageCountNeeded > 0) {
+        if (updatedGrave.length === 0) {
+          addLog("（墓地が空のため、カードを回収できませんでした）");
+          cleanupAfterSalvage(usedCards, matchedCompound.name);
+        } else {
+          const actualSalvageCount = Math.min(salvageCountNeeded, updatedGrave.length);
+          setShowGraveSalvage(true);
+          setTempEffectZone(usedCards);
+          setActiveSynthesizedCompound(matchedCompound.name);
+          setSalvageCount(actualSalvageCount);
+          addLog(`墓地から手札に加えるカードを ${actualSalvageCount} 枚選んでください。`);
+        }
       } else {
-        const actualSalvageCount = Math.min(salvageCountNeeded, updatedGrave.length);
-        setShowGraveSalvage(true);
+        // 墓地回収は不要なため、非同期モーダル終了時のクリーンアップ用として一時領域に退避するのみ
         setTempEffectZone(usedCards);
         setActiveSynthesizedCompound(matchedCompound.name);
-        setSalvageCount(actualSalvageCount);
-        addLog(`墓地から手札に加えるカードを ${actualSalvageCount} 枚選んでください。`);
       }
     }
   };
@@ -2533,7 +2528,7 @@ export default function App() {
   };
 
   // ダンジョン開始初期化
-  const startDungeon = () => {
+  const startDungeon = (length: number = dungeonLength) => {
     const initialDeck = INITIAL_DECK_TYPES.map(t => createCard(t));
     setGlobalDeck(initialDeck);
     setGold(100);
@@ -2543,9 +2538,10 @@ export default function App() {
     setActiveTab("battle");
     
     // ダンジョンマップ生成
-    const newMap = generateDungeonMap();
+    const newMap = generateDungeonMap(length);
     setDungeonMap(newMap);
     setCurrentNodeId(null);
+    setDungeonLength(length);
     
     setPlayer({
       hp: 20,
@@ -2842,94 +2838,63 @@ export default function App() {
                 初期元素カードを過不足なく選択して「合成確定」し、強力な化学反応を巻き起こして敵を撃破してください。
               </p>
 
-              {/* DUNGEON START BUTTON */}
-              <div className="w-full mb-8">
-                <button
-                  id="btn-start-dungeon-run"
-                  onClick={startDungeon}
-                  className="w-full py-4 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-slate-950 font-bold text-base md:text-lg rounded-2xl shadow-[0_0_30px_rgba(6,182,212,0.3)] hover:shadow-[0_0_40px_rgba(6,182,212,0.5)] transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-3 cursor-pointer"
-                >
-                  <Play className="w-6 h-6 fill-slate-950" />
-                  <span>仮のダンジョンをテストプレイ（全5マス、ショップ、イベント有）</span>
-                </button>
-              </div>
-
-              <div className="w-full bg-slate-900/50 border border-slate-800 rounded-xl p-5 mb-8 text-left">
-                <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-1.5 font-display">
-                  <Swords className="w-4 h-4 text-cyan-400" />
-                  個別戦闘サンドボックス（ダンジョンを通らずに即座に戦闘テスト）
+               {/* DUNGEON SELECTION & START */}
+              <div className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8 text-left">
+                <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-1.5 font-display">
+                  <Play className="w-4 h-4 text-cyan-400" />
+                  ダンジョン探索の長さを選択
                 </h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
                   <button
-                    id="btn-select-slime"
-                    onClick={() => {
-                      const initialDeck = INITIAL_DECK_TYPES.map(t => createCard(t));
-                      setGlobalDeck(initialDeck);
-                      setGold(100);
-                      startBattle("slime");
-                    }}
-                    className="p-4 bg-emerald-950/20 border border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-950/40 rounded-xl text-left transition-all duration-200 group"
+                    onClick={() => setDungeonLength(5)}
+                    className={`p-4 rounded-xl border text-left transition duration-200 cursor-pointer ${
+                      dungeonLength === 5 
+                        ? "bg-cyan-950/20 border-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.15)]" 
+                        : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-300"
+                    }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-emerald-400 font-display">スライム</span>
-                      <span className="text-xs bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800">HP 10</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold font-display text-sm">🧪 ショートダンジョン</span>
+                      {dungeonLength === 5 && <span className="text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded font-mono font-bold">選択中</span>}
                     </div>
                     <p className="text-xs text-slate-400 leading-snug">
-                      特性〈液状生命体〉：H（水素）を含む化合物から受けるダメージを1軽減。最も基本的な敵。
+                      全 5 マス。すばやく基本的なゲームの仕組みやレシピ合成を試したい場合におすすめ。
                     </p>
-                    <div className="mt-3 flex items-center gap-1 text-xs text-emerald-400 font-medium group-hover:translate-x-1 transition-transform">
-                      <span>戦闘テスト開始</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </div>
                   </button>
 
                   <button
-                    id="btn-select-bat"
-                    onClick={() => {
-                      const initialDeck = INITIAL_DECK_TYPES.map(t => createCard(t));
-                      setGlobalDeck(initialDeck);
-                      setGold(100);
-                      startBattle("bat");
-                    }}
-                    className="p-4 bg-red-950/20 border border-red-500/30 hover:border-red-500 hover:bg-red-950/40 rounded-xl text-left transition-all duration-200 group"
+                    onClick={() => setDungeonLength(15)}
+                    className={`p-4 rounded-xl border text-left transition duration-200 cursor-pointer ${
+                      dungeonLength === 15 
+                        ? "bg-purple-950/20 border-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.15)]" 
+                        : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-300"
+                    }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-red-400 font-display">バット</span>
-                      <span className="text-xs bg-red-950 text-red-400 px-2 py-0.5 rounded border border-red-800">HP 12</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold font-display text-sm">🌌 ロングダンジョン</span>
+                      {dungeonLength === 15 && <span className="text-[10px] bg-purple-950 text-purple-400 border border-purple-800 px-2 py-0.5 rounded font-mono font-bold">選択中</span>}
                     </div>
                     <p className="text-xs text-slate-400 leading-snug">
-                      特性〈浮遊〉：行動不能デバフ無効。90%で4ダメージ、10%で強力な「吸血（HP回復）」を使用。
+                      全 15 マス。長い道のりで多くの元素やアーティファクトを集め、最強のデッキを構築。
                     </p>
-                    <div className="mt-3 flex items-center gap-1 text-xs text-red-400 font-medium group-hover:translate-x-1 transition-transform">
-                      <span>戦闘テスト開始</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </div>
-                  </button>
-
-                  <button
-                    id="btn-select-ghost"
-                    onClick={() => {
-                      const initialDeck = INITIAL_DECK_TYPES.map(t => createCard(t));
-                      setGlobalDeck(initialDeck);
-                      setGold(100);
-                      startBattle("ghost");
-                    }}
-                    className="p-4 bg-fuchsia-950/20 border border-fuchsia-500/30 hover:border-fuchsia-500 hover:bg-fuchsia-950/40 rounded-xl text-left transition-all duration-200 group"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-fuchsia-400 font-display">ゴースト</span>
-                      <span className="text-xs bg-fuchsia-950 text-fuchsia-400 px-2 py-0.5 rounded border border-fuchsia-800">HP 14</span>
-                    </div>
-                    <p className="text-xs text-slate-400 leading-snug">
-                      特性〈幽体〉：デバフ（毒など）によるダメージを受けない。攻撃とデバフ「恐怖」を交互に使用。
-                    </p>
-                    <div className="mt-3 flex items-center gap-1 text-xs text-fuchsia-400 font-medium group-hover:translate-x-1 transition-transform">
-                      <span>戦闘テスト開始</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </div>
                   </button>
                 </div>
+
+                <button
+                  id="btn-start-dungeon-run"
+                  onClick={() => startDungeon(dungeonLength)}
+                  className={`w-full py-4 bg-gradient-to-r font-bold text-base md:text-lg rounded-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-3 cursor-pointer text-slate-950 ${
+                    dungeonLength === 5
+                      ? "from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.25)]"
+                      : "from-purple-500 to-purple-600 hover:from-purple-400 hover:to-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.25)]"
+                  }`}
+                >
+                  <Play className="w-5 h-5 fill-slate-950" />
+                  <span>
+                    {dungeonLength === 5 ? "ショートダンジョン探索を開始（全5マス）" : "ロングダンジョン探索を開始（全15マス）"}
+                  </span>
+                </button>
               </div>
 
               <div className="text-xs text-slate-500 font-mono">
@@ -3559,8 +3524,8 @@ export default function App() {
                 {hasChosenVictoryReward ? (
                   currentNodeId ? (
                     // ダンジョン中の場合
-                    dungeonMap.find(n => n.id === currentNodeId)?.depth === 4 ? (
-                      // 5マス目（ボス）の場合
+                    dungeonMap.find(n => n.id === currentNodeId)?.depth === dungeonLength - 1 ? (
+                      // ボスの場合
                       <button
                         id="btn-victory-to-clear"
                         onClick={() => setGameState("game_clear")}
@@ -3676,14 +3641,14 @@ export default function App() {
 
                 {/* 2Dルートマップ風 UI */}
                 <div className="py-8 px-4 flex flex-col gap-6 bg-slate-950/50 rounded-xl border border-slate-900 relative">
-                  {/* 深さ 0 から 4 までをループ */}
-                  {[0, 1, 2, 3, 4].map(depth => {
+                  {/* 深さ 0 から dungeonLength - 1 までをループ */}
+                  {Array.from({ length: dungeonLength }, (_, i) => i).map(depth => {
                     const nodesInDepth = dungeonMap.filter(n => n.depth === depth);
                     return (
                       <div key={depth} className="flex flex-col gap-3">
                         <div className="flex justify-between items-center text-[10px] font-mono text-slate-600 border-b border-slate-900 pb-1.5">
-                          <span>DEPTH 0{depth + 1}</span>
-                          {depth === 4 && <span className="text-amber-500 font-bold flex items-center gap-1">👑 FINAL BOSS</span>}
+                          <span>DEPTH {String(depth + 1).padStart(2, '0')}</span>
+                          {depth === dungeonLength - 1 && <span className="text-amber-500 font-bold flex items-center gap-1">👑 FINAL BOSS</span>}
                         </div>
                         <div className="flex justify-around items-center py-2 gap-4">
                           {nodesInDepth.map(node => {
@@ -3693,7 +3658,7 @@ export default function App() {
                               canSelect = true; // 最初のマス
                             } else if (currentNodeId) {
                               const currentNode = dungeonMap.find(n => n.id === currentNodeId);
-                              if (currentNode && isNodeConnected(currentNode.id, node) && currentNode.completed) {
+                              if (currentNode && isNodeConnected(currentNode.id, node, dungeonLength) && currentNode.completed) {
                                 canSelect = true; // 現在のマスが完了していて、道がつながっている
                               }
                             }
@@ -3713,7 +3678,7 @@ export default function App() {
                               icon = "💎";
                               typeText = "イベント";
                               styleClass = "bg-purple-950/10 border-purple-500/20 text-purple-400 hover:border-purple-400/50";
-                            } else if (depth === 4) {
+                            } else if (depth === dungeonLength - 1) {
                               icon = "👹";
                               typeText = "BOSS";
                               styleClass = "bg-rose-950/20 border-rose-500/30 text-rose-400 hover:border-rose-500";
@@ -3737,7 +3702,7 @@ export default function App() {
                                     const enemies: ("slime" | "bat" | "ghost")[] = ["slime", "bat", "ghost"];
                                     const randEnemy = enemies[Math.floor(Math.random() * enemies.length)];
                                     setCurrentNodeId(node.id);
-                                    startBattle(randEnemy, depth === 4); // 5層目(インデックス4)ならボス
+                                    startBattle(randEnemy, depth === dungeonLength - 1); // ボス判定
                                   } else if (node.type === "shop") {
                                     enterShopNode(node.id);
                                   } else {
@@ -3761,7 +3726,7 @@ export default function App() {
                 </div>
 
                 <div className="bg-slate-950/30 p-4 rounded-xl border border-slate-900 text-xs text-slate-400 leading-relaxed font-sans">
-                  <strong>💡 進行方法:</strong> 「進行可能」と点滅している一番下のノード（深さ1）をクリックして開始します。クリアすると接続されている上の層のマスへ進むことができます。最上層の5マス目は最大HPが2倍になった強力なBOSSが立ちはだかります！
+                  <strong>💡 進行方法:</strong> 「進行可能」と点滅している一番下のノード（深さ1）をクリックして開始します。クリアすると接続されている上の層のマスへ進むことができます。最上層の {dungeonLength} マス目は最大HPが2倍になった強力なBOSSが立ちはだかります！
                 </div>
               </div>
             </motion.div>
@@ -4325,6 +4290,107 @@ export default function App() {
                     ? "選択を確定する" 
                     : `最低でも ${selectionMinMax.min} 枚選択してください`}
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* RECIPES MODAL (VIEW RECIPES 図鑑) */}
+      <AnimatePresence>
+        {activeTab === "recipes" && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              className="bg-slate-900 border border-slate-800 rounded-2xl max-w-5xl w-full h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+            >
+              <div className="px-5 py-4 border-b border-slate-800 bg-slate-950 flex justify-between items-center shrink-0">
+                <div>
+                  <h3 className="font-display font-bold text-lg text-white flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-cyan-400" />
+                    化合物レシピ図鑑（全51種抜粋）
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    本作に登場する化合物とその比率、そしてテストプレイ版で有効化されている効果の一覧です。
+                  </p>
+                </div>
+                <button
+                  id="btn-close-recipes"
+                  onClick={() => setActiveTab("battle")}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition cursor-pointer"
+                >
+                  閉じる
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto flex-1 bg-slate-950/30 flex flex-col gap-6">
+                {/* CARD EXPLANATIONS */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-3 bg-sky-950/30 border border-sky-500/20 rounded-xl">
+                    <span className="text-xs font-bold font-display text-sky-400">H (水素)</span>
+                    <p className="text-[11px] text-slate-400 leading-normal mt-1">初期元素。最も軽く豊富。水や過酸化水素などの基本ベースを構成。</p>
+                  </div>
+                  <div className="p-3 bg-rose-950/30 border border-rose-500/20 rounded-xl">
+                    <span className="text-xs font-bold font-display text-rose-400">O (酸素)</span>
+                    <p className="text-[11px] text-slate-400 leading-normal mt-1">初期元素。激しい酸化力を持ち、二酸化炭素や窒素化合物でシールドや強力なデバフを誘発。</p>
+                  </div>
+                  <div className="p-3 bg-slate-950/40 border border-slate-500/20 rounded-xl">
+                    <span className="text-xs font-bold font-display text-slate-300">C (炭素)</span>
+                    <p className="text-[11px] text-slate-400 leading-normal mt-1">初期元素。骨格を担う。主に毒素をまとった炭酸化合物の核となる。</p>
+                  </div>
+                  <div className="p-3 bg-purple-950/30 border border-purple-500/20 rounded-xl">
+                    <span className="text-xs font-bold font-display text-purple-400">N (窒素)</span>
+                    <p className="text-[11px] text-slate-400 leading-normal mt-1">初期元素。非常に安定だが化合物は極めて有毒、または頑強。シールドやアンモニア毒のベース。</p>
+                  </div>
+                </div>
+
+                {/* RECIPE LIST */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {RECIPES.map((recipe, index) => (
+                    <div 
+                      key={index}
+                      className={`p-4 rounded-xl border flex flex-col justify-between transition-all ${
+                        recipe.implemented 
+                          ? "bg-slate-950/80 border-cyan-500/30 glow-blue hover:border-cyan-500/50" 
+                          : "bg-slate-950/30 border-slate-800 opacity-60"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-display font-bold text-sm text-white flex items-center gap-1.5">
+                            {recipe.name}
+                            {recipe.implemented && (
+                              <span className="text-[9px] bg-cyan-950 text-cyan-400 border border-cyan-800 px-1.5 py-0.2 rounded font-mono font-bold">
+                                テスト稼働中
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-xs font-mono text-cyan-400 font-bold bg-slate-900 border border-slate-800 px-2 py-0.5 rounded">
+                            {recipe.formulaDisplay}
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] text-slate-400 leading-relaxed mb-3">
+                          {recipe.description}
+                        </p>
+                      </div>
+
+                      {recipe.implemented && recipe.testPlayEffect && (
+                        <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-green-400 whitespace-pre-line">
+                          <span className="text-[10px] text-slate-500 font-bold block mb-0.5 font-sans">【テストプレイ時効果】</span>
+                          {recipe.testPlayEffect}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </motion.div>
           </motion.div>
