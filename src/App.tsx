@@ -336,7 +336,7 @@ const RECIPES: CompoundRecipe[] = [
     formulaDisplay: (<span>H<sub>2</sub>O<sub>2</sub></span>),
     elements: { H: 2, O: 2 },
     description: "漂白剤や消毒剤として使われる。激しい酸化力で敵を蝕みつつ、自身を保護するシールドを生成する。",
-    testPlayEffect: "・敵に2ダメージを与える\n・自身に3 of シールドを付与し、墓地の水素（H）カードをすべて山札に戻す",
+    testPlayEffect: "・敵に2ダメージを与える\n・自身に3のシールドを付与し、墓地の水素（H）カードをすべて山札に戻す",
     implemented: true
   },
   { name: "炭酸", formula: "H2CO3", formulaDisplay: (<span>H<sub>2</sub>CO<sub>3</sub></span>), elements: { H: 2, C: 1, O: 3 }, description: "二酸化炭素が水に溶けたもの。大量のダメージを与え、さらに手札の枚数に応じた強力な毒素を流し込む。", testPlayEffect: "・敵に5ダメージを与える\n・カードを3枚引く\n・引いた後の手札の枚数分「毒デバフ」を敵に付与する", implemented: true },
@@ -364,22 +364,22 @@ const RECIPES: CompoundRecipe[] = [
   { name: "次亜塩素酸", formula: "HClO", formulaDisplay: (<span>HClO</span>), elements: { H: 1, Cl: 1, O: 1 }, description: "強力な殺菌力。合成素材自身をバトルから除外し、山札に使い捨てのコピーを仕込む。", testPlayEffect: "・敵一体に2ダメージを与える\n・この合成で使用したカードをこのバトルから除外する\n・この合成で使用したカードと同じ種類の使い捨てカードを山札に加える（シャッフル）", implemented: true },
   { name: "亜塩素酸", formula: "HClO2", formulaDisplay: (<span>HClO<sub>2</sub></span>), elements: { H: 1, Cl: 1, O: 2 }, description: "漂白剤等。合成素材自身をバトルから除外し、山札に使い捨てのコピーを仕込む。", testPlayEffect: "・敵一体に3ダメージを与える\n・この合成で使用したカードをこのバトルから除外する\n・この合成で使用したカードと同じ種類の使い捨てカードを山札に加える（シャッフル）", implemented: true },
   { name: "塩素酸", formula: "HClO3", formulaDisplay: (<span>HClO<sub>3</sub></span>), elements: { H: 1, Cl: 1, O: 3 }, description: "強酸化剤。除外枚数の3倍のダメージを与え、4枚ドローする。", testPlayEffect: "・敵一体に対象に、このバトル中除外したカード枚数の3倍のダメージを与える\n・カードを4枚引く", implemented: true },
-  { name: "過塩素酸", formula: "HClO4", formulaDisplay: (<span>HClO<sub>4</sub></span>), elements: { H: 1, Cl: 1, O: 4 }, description: "最強クラスの強酸。除外枚数の3倍のダメージを与え、5枚ドローする。", testPlayEffect: "・敵一体に対象に、このバトル中除外したカード枚数の3倍 of ダメージを与える\n・カードを5枚引く", implemented: true },
-  { name: "酸化ナトリウム", formula: "Na2O", formulaDisplay: (<span>Na<sub>2</sub>O</span>), elements: { Na: 2, O: 1 }, description: "白い固体。シールドを張り、持続的な酸素供給を得る。", testPlayEffect: "・自身に6 of シールドを付与する\n・「バフ：酸素供給」（カウント2）を自分に付与する", implemented: true },
-  { name: "酸化カルシウム", formula: "CaO", formulaDisplay: (<span>CaO</span>), elements: { Ca: 1, O: 1 }, description: "生石灰。シールドを張り、自身のシールド量に比例した攻撃を行う。", testPlayEffect: "・自身に3 of シールドを付与する\n・敵一体に自身のシールド数値の半分（切り捨て）のダメージを与える", implemented: true },
+  { name: "過塩素酸", formula: "HClO4", formulaDisplay: (<span>HClO<sub>4</sub></span>), elements: { H: 1, Cl: 1, O: 4 }, description: "最強クラスの強酸。除外枚数の3倍のダメージを与え、5枚ドローする。", testPlayEffect: "・敵一体に対象に、このバトル中除外したカード枚数の3倍のダメージを与える\n・カードを5枚引く", implemented: true },
+  { name: "酸化ナトリウム", formula: "Na2O", formulaDisplay: (<span>Na<sub>2</sub>O</span>), elements: { Na: 2, O: 1 }, description: "白い固体。シールドを張り、持続的な酸素供給を得る。", testPlayEffect: "・自身に6のシールドを付与する\n・「バフ：酸素供給」（カウント2）を自分に付与する", implemented: true },
+  { name: "酸化カルシウム", formula: "CaO", formulaDisplay: (<span>CaO</span>), elements: { Ca: 1, O: 1 }, description: "生石灰。シールドを張り、自身のシールド量に比例した攻撃を行う。", testPlayEffect: "・自身に3のシールドを付与する\n・敵一体に自身のシールド数値の半分（切り捨て）のダメージを与える", implemented: true },
   { name: "酸化鉄(III)", formula: "Fe2O3", formulaDisplay: (<span>Fe<sub>2</sub>O<sub>3</sub></span>), elements: { Fe: 2, O: 3 }, description: "赤サビ。減少している体力を一気に頑強なシールドに変換し、それを敵に叩きつける。", testPlayEffect: "・自身の最大体力から現在体力を引いた値と同じ数値のシールドを自身に付与する\n・敵一体に、自身のシールド数値と同じダメージを与える", implemented: true },
   { name: "酸化銅(I)", formula: "Cu2O", formulaDisplay: (<span>Cu<sub>2</sub>O</span>), elements: { Cu: 2, O: 1 }, description: "赤色の粉末。山札を削り、墓地のカード枚数に応じた毒を流し込む。", testPlayEffect: "・山札の上から4枚を墓地に送る\n・敵一体に、墓地の枚数3枚につき1回「デバフ：毒」（カウント+1）を付与する", implemented: true },
   { name: "酸化銅(II)", formula: "CuO", formulaDisplay: (<span>CuO</span>), elements: { Cu: 1, O: 1 }, description: "黒色の粉末。山札を墓地へ送り、墓地から直接任意のカードを回収する。", testPlayEffect: "・山札の上から3枚を墓地に送る\n・墓地から好きなカードを1枚選び、手札に加える", implemented: true },
   { name: "フッ化ナトリウム", formula: "NaF", formulaDisplay: (<span>NaF</span>), elements: { Na: 1, F: 1 }, description: "虫歯予防。回復し、回収反応を立ち上げ、墓地から大量のカードをドローして反応させる。", testPlayEffect: "・自身の体力を3回復する\n・「バフ：回収反応」（カウント1）を自分に付与する\n・墓地からランダムで3枚を選び、墓地から取り除き手札に加える", implemented: true },
-  { name: "フッ化カルシウム", formula: "CaF2", formulaDisplay: (<span>CaF<sub>2</sub></span>), elements: { Ca: 1, F: 2 }, description: "蛍石。シールドを張り、回収反応を立ち上げ、墓地カードをドローしてトリガーする。", testPlayEffect: "・自身に4 of シールドを付与する\n・「バフ：回収反応」（カウント1）を自分に付与する\n・墓地からランダムで3枚を選び、墓地から取り除き手札に加える", implemented: true },
+  { name: "フッ化カルシウム", formula: "CaF2", formulaDisplay: (<span>CaF<sub>2</sub></span>), elements: { Ca: 1, F: 2 }, description: "蛍石。シールドを張り、回収反応を立ち上げ、墓地カードをドローしてトリガーする。", testPlayEffect: "・自身に4のシールドを付与する\n・「バフ：回収反応」（カウント1）を自分に付与する\n・墓地からランダムで3枚を選び、墓地から取り除き手札に加える", implemented: true },
   { name: "塩化ナトリウム", formula: "NaCl", formulaDisplay: (<span>NaCl</span>), elements: { Na: 1, Cl: 1 }, description: "食塩。体力を回復させ、不要な手札1枚を除外に送る。", testPlayEffect: "・自身の体力を3回復する\n・手札から好きなカードを1枚選び、このバトルから除外する", implemented: true },
-  { name: "塩化カルシウム", formula: "CaCl2", formulaDisplay: (<span>CaCl<sub>2</sub></span>), elements: { Ca: 1, Cl: 2 }, description: "融雪剤。シールドを張りつつ、不要な手札1枚を除外に送る。", testPlayEffect: "・自身に8 of シールドを付与する\n・手札から好きなカードを1枚選び、このバトルから除外する", implemented: true },
+  { name: "塩化カルシウム", formula: "CaCl2", formulaDisplay: (<span>CaCl<sub>2</sub></span>), elements: { Ca: 1, Cl: 2 }, description: "融雪剤。シールドを張りつつ、不要な手札1枚を除外に送る。", testPlayEffect: "・自身に8のシールドを付与する\n・手札から好きなカードを1枚選び、このバトルから除外する", implemented: true },
   { name: "塩化アンモニウム", formula: "NH4Cl", formulaDisplay: (<span>NH<sub>4</sub>Cl</span>), elements: { N: 1, H: 4, Cl: 1 }, description: "除外されたカードのパワーで攻撃し、除外カード4枚を再び手札に呼び戻す。", testPlayEffect: "・敵一体に、このバトル中除外したカード枚数の2倍のダメージを与える\n・このバトル中に除外されたカードから4枚選び、それらを除外から取り除き手札に加える", implemented: true },
   { name: "塩化カリウム", formula: "KCl", formulaDisplay: (<span>KCl</span>), elements: { K: 1, Cl: 1 }, description: "除外された世界から好きなカードを1枚手札に戻し、酸素供給を開始する。", testPlayEffect: "・除外されたカードから好きなカードを1枚選び、除外から取り除き手札に加える\n・「バフ：酸素供給」（カウント2）を自分に付与する", implemented: true },
   { name: "硫化銅(I)", formula: "Cu2S", formulaDisplay: (<span>Cu<sub>2</sub>S</span>), elements: { Cu: 2, S: 1 }, description: "黒色の固体。山札から1枚を墓地に送り、墓地の枚数4枚につき1のダメージを敵に与え、さらに自身の手札を1枚選んで除外する。", testPlayEffect: "・山札から1枚を墓地に送る\n・敵一体に対象に墓地の枚数4枚につき1のダメージを与える\n・自身の手札を1枚選び、このバトルから除外する", implemented: true },
   { name: "硫化鉄(II)", formula: "FeS", formulaDisplay: (<span>FeS</span>), elements: { Fe: 1, S: 1 }, description: "暗褐色の固体。自身の手札を1枚選んで除外し、これまでに除外されたカードの総枚数に等しい値のシールドを自分に付与する。", testPlayEffect: "・自身の手札を1枚選び、このバトルから除外する\n・自分にこのバトル中除外されたカードの枚数の値だけシールドを付与する", implemented: true },
   { name: "硫化ナトリウム", formula: "Na2S", formulaDisplay: (<span>Na<sub>2</sub>S</span>), elements: { Na: 2, S: 1 }, description: "除外枚数に応じたダメージを与え、体力を4回復する。", testPlayEffect: "・敵一体に、このバトル中除外したカード枚数分のダメージを与える\n・自身の体力を4回復する", implemented: true },
-  { name: "硫化カルシウム", formula: "CaS", formulaDisplay: (<span>CaS</span>), elements: { Ca: 1, S: 1 }, description: "除外枚数に応じたダメージを与え、4のシールドを得る。", testPlayEffect: "・敵一体に、このバトル中除外したカード枚数分のダメージを与える\n・自身に4 of シールドを付与する", implemented: true },
+  { name: "硫化カルシウム", formula: "CaS", formulaDisplay: (<span>CaS</span>), elements: { Ca: 1, S: 1 }, description: "除外枚数に応じたダメージを与え、4のシールドを得る。", testPlayEffect: "・敵一体に、このバトル中除外したカード枚数分のダメージを与える\n・自身に4のシールドを付与する", implemented: true },
   { name: "水酸化ナトリウム", formula: "NaOH", formulaDisplay: (<span>NaOH</span>), elements: { Na: 1, O: 1, H: 1 }, description: "苛性ソーダ。少し回復し、カードを3枚一気に引き込む。", testPlayEffect: "・自身の体力を1回復する\n・カードを3枚引く", implemented: true },
   { name: "水酸化カリウム", formula: "KOH", formulaDisplay: (<span>KOH</span>), elements: { K: 1, O: 1, H: 1 }, description: "苛性カリ。酸素供給を有効化し、カードを2枚引く。", testPlayEffect: "・「バフ：酸素供給」（カウント2）を自分に付与する\n・カードを2枚引く", implemented: true },
   { name: "水酸化鉄", formula: "Fe(OH)3", formulaDisplay: (<span>Fe(OH)<sub>3</sub></span>), elements: { Fe: 1, O: 3, H: 3 }, description: "手札上限拡張が必要な大技。自身のシールド値のダメージを浴びせ、手札が上限に満ちるまで一気に引ききる。", testPlayEffect: "・敵一体に、現在の自身のシールド数値と同じダメージを与える\n・カードを手札上限まで引く", implemented: true },
@@ -1708,7 +1708,7 @@ export default function App() {
         if (existingOxy) {
           existingOxy.count += 2;
         } else {
-          nextPlayer.debuffs.push({ name: "酸素供給", count: 2, description: "ターン開始時、使い捨て of Oカードを手札に1枚生成する。" });
+          nextPlayer.debuffs.push({ name: "酸素供給", count: 2, description: "ターン開始時、使い捨てのOカードを手札に1枚生成する。" });
         }
 
         if (updatedGrave.length > 0) {
